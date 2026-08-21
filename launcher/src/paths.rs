@@ -21,6 +21,17 @@ pub const ROOT_MARKER: &str = ".pendriveai-root";
 /// and config from the pendrive.
 pub const ROOT_ENV: &str = "PENDRIVEAI_ROOT";
 
+/// Overrides *only* the llama.cpp runtime directory, leaving the project root
+/// on the pendrive.
+///
+/// This is what makes the FAT32 bootstrap clean: `StartAI.sh` copies the two
+/// executable trees (the launcher and `runtime/linux/`) to local disk where the
+/// execute bit is honoured, then points the launcher back at the drive for the
+/// model, web assets, config and data. Without this, the launcher would derive
+/// the runtime path from the root and try to execute the copy on the drive that
+/// refuses execution.
+pub const RUNTIME_DIR_ENV: &str = "PENDRIVEAI_RUNTIME_DIR";
+
 /// Directory name under `runtime/` for the current platform.
 pub const fn platform_dir() -> &'static str {
     if cfg!(windows) {
@@ -102,6 +113,22 @@ impl Layout {
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "executable has no parent dir"))?
             .to_path_buf();
         Ok(Layout::from_root(find_root(&start)))
+    }
+
+    /// Point the runtime at a different directory, keeping every other path.
+    pub fn with_runtime_dir(mut self, dir: impl Into<PathBuf>) -> Layout {
+        let dir: PathBuf = dir.into();
+        self.server_bin = dir.join(server_exe_name());
+        self.runtime_dir = dir;
+        self
+    }
+
+    /// Apply `PENDRIVEAI_RUNTIME_DIR` if it is set and non-empty.
+    pub fn apply_runtime_env(self) -> Layout {
+        match std::env::var_os(RUNTIME_DIR_ENV) {
+            Some(v) if !v.is_empty() => self.with_runtime_dir(PathBuf::from(v)),
+            _ => self,
+        }
     }
 
     /// Human-readable, actionable validation. Returns one message per problem
@@ -387,6 +414,21 @@ mod tests {
         );
         // Blank config must not resolve to the models dir itself.
         assert!(l.resolve_model(Some("   ")).is_none() || l.resolve_model(Some("   ")).is_some());
+    }
+
+    #[test]
+    fn runtime_dir_override_moves_only_the_runtime() {
+        let l = Layout::from_root("/media/u/PENDRIVEAI").with_runtime_dir("/tmp/stage/runtime/linux");
+        // The runtime moves to local disk...
+        assert_eq!(l.runtime_dir, Path::new("/tmp/stage/runtime/linux"));
+        assert_eq!(l.server_bin, Path::new("/tmp/stage/runtime/linux").join(server_exe_name()));
+        // ...while everything the drive owns stays on the drive.
+        assert_eq!(l.models_dir, Path::new("/media/u/PENDRIVEAI/models"));
+        assert_eq!(l.web_dir, Path::new("/media/u/PENDRIVEAI/web"));
+        assert_eq!(l.logs_dir, Path::new("/media/u/PENDRIVEAI/data/logs"));
+        assert_eq!(l.chats_dir, Path::new("/media/u/PENDRIVEAI/data/chats"));
+        assert_eq!(l.config_file, Path::new("/media/u/PENDRIVEAI/config/config.json"));
+        assert_eq!(l.root, Path::new("/media/u/PENDRIVEAI"));
     }
 
     #[test]

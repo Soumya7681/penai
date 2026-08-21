@@ -58,6 +58,7 @@ struct Cli {
     ctx: Option<u32>,
     threads: Option<u32>,
     quiet: bool,
+    runtime_dir: Option<PathBuf>,
 }
 
 fn parse_cli() -> Result<Option<Cli>, String> {
@@ -68,6 +69,7 @@ fn parse_cli() -> Result<Option<Cli>, String> {
         ctx: None,
         threads: None,
         quiet: false,
+        runtime_dir: None,
     };
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
@@ -108,6 +110,7 @@ fn parse_cli() -> Result<Option<Cli>, String> {
                         .map_err(|_| "--threads must be a number".to_string())?,
                 )
             }
+            "--runtime-dir" => c.runtime_dir = Some(PathBuf::from(value("--runtime-dir")?)),
             other => {
                 return Err(format!(
                     "unknown option `{}`. Run with --help for the list.",
@@ -134,6 +137,9 @@ OPTIONS:
     --port <PORT>      Preferred localhost port (default 8080, auto-fallback)
     --ctx <N>          Context size in tokens (default from config/config.json)
     --threads <N>      CPU threads (default: auto-detected)
+    --runtime-dir <D>  Load llama.cpp from this directory instead of
+                       <root>/runtime/<os>. Used by StartAI.sh when the drive
+                       is mounted without execute permission.
     --no-browser       Do not open a browser; just print the URL
     --force            Start even if the RAM check says it is unlikely to work
     --quiet            Less console output
@@ -168,6 +174,12 @@ fn run() -> Result<(), String> {
             e
         )
     })?;
+    // A --runtime-dir flag beats the environment variable, which beats the
+    // default of <root>/runtime/<os>.
+    let layout = match &cli.runtime_dir {
+        Some(d) => layout.with_runtime_dir(d),
+        None => layout.apply_runtime_env(),
+    };
 
     let (mut cfg, cfg_warnings) = Config::load(&layout.config_file)?;
     if let Some(p) = cli.port {
@@ -533,8 +545,3 @@ fn hold_console() {
     let mut s = String::new();
     let _ = std::io::stdin().read_line(&mut s);
 }
-
-/// Silence the unused-import warning on platforms where PathBuf is only used
-/// inside cfg-gated code paths.
-#[allow(dead_code)]
-fn _keep_pathbuf(_: PathBuf) {}
