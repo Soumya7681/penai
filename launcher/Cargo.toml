@@ -1,0 +1,27 @@
+[package]
+name = "pendriveai-launcher"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.70"
+description = "Portable offline launcher for PendriveAI (llama.cpp + browser UI)"
+license = "MIT"
+
+# NO EXTERNAL DEPENDENCIES.
+# Rationale: the launcher must be buildable on an air-gapped machine with only
+# a Rust toolchain, must produce a small single-file native binary, and must not
+# drag a crate supply-chain onto a security-sensitive offline tool.
+# Everything (HTTP client, HTTP server, JSON, OS memory query, signal handling)
+# is implemented on top of `std` plus a handful of libc/kernel32 FFI symbols
+# that are already linked into every Rust binary on the respective platform.
+[dependencies]
+
+[[bin]]
+name = "StartAI"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "unwind"   # a panicking sidecar connection thread must not kill the process
