@@ -1,0 +1,36 @@
+# ---- Models (multi-GB, never committed) ----
+*.gguf
+*.gguf.part
+*.bin
+*.safetensors
+models/*.gguf
+
+# ---- Downloaded llama.cpp runtimes ----
+runtime/
+vendor/
+*.tar.gz
+*.zip
+*.7z
+
+# ---- Build output ----
+release/
+launcher/target/
+web/dist/
+web/node_modules/
+node_modules/
+dist/
+build/
+
+# ---- Runtime data / user chat data ----
+data/
+!data/.gitkeep
+*.log
+config/config.json
+
+# ---- Editor / OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.idea/
+.vscode/
