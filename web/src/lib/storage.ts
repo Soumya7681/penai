@@ -137,6 +137,8 @@ export interface StoreCapabilities {
   base: string
   /** True when the launcher's config turns web fetching on. Off by default. */
   fetch: boolean
+  /** True when fetching is on *and* a search provider is configured. */
+  search: boolean
 }
 
 export async function detectStore(
@@ -152,8 +154,10 @@ export async function detectStore(
       const r = await fetch(`${base}/api/health`, { signal: c.signal, cache: 'no-store' })
       clearTimeout(t)
       if (r.ok) {
-        const j = (await r.json()) as { kind?: string; fetch?: boolean }
-        if (j.kind === 'pendriveai-store') return { base, fetch: j.fetch === true }
+        const j = (await r.json()) as { kind?: string; fetch?: boolean; search?: boolean }
+        if (j.kind === 'pendriveai-store') {
+          return { base, fetch: j.fetch === true, search: j.search === true }
+        }
       }
     } catch {
       // Not there; try the next candidate.

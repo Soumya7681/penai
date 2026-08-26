@@ -120,7 +120,33 @@ StartAI.bat          (zero-compile fallback: double-click it, or run it from cmd
 }</code></pre>
 <p>That block goes in <code>config/config.json</code> on the drive. Restart the launcher afterwards; the setting is read once at startup.</p>
 <p>With it on, a globe button appears to the left of the send button. Click it, type an address (<code>example.com/page</code> is enough, <code>https://</code> is added for you) and press Fetch. The launcher retrieves the page, strips it to text, and adds it to the composer as an attachment chip labelled with the site. Expand it to read what was captured, remove it if it is not what you wanted, then type your question and send. The page text and your question go to the model together.</p>
-<p>It fetches one page, the one you asked for. It does not follow links, there is no search, and the model cannot start a fetch on its own.</p>
+<h3 id="searching">Searching</h3>
+<p>Fetching needs an address you already know. To find one, name a search provider as well:</p>
+<pre><code class="lang-json">"network": {
+  "enabled": true,
+  "search": {
+    "provider": "searxng",
+    "url": "http://192.168.1.10:8888",
+    "apiKey": "",
+    "maxResults": 6
+  }
+}</code></pre>
+<p>Three providers are supported, and PenAI ships with none of them configured:</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Provider</th>
+<th>What you need</th>
+<th>Notes</th>
+</tr></thead><tbody>
+<tr><td><code>searxng</code></td><td><code>url</code> of an instance</td><td>No key. Your own instance is the private option; a LAN or <code>localhost</code> address is accepted here because you configured it. Some public instances disable the JSON API.</td></tr>
+<tr><td><code>brave</code></td><td><code>apiKey</code></td><td>api.search.brave.com. Free tier available.</td></tr>
+<tr><td><code>tavily</code></td><td><code>apiKey</code></td><td>api.tavily.com. Built for feeding search results to models.</td></tr>
+</tbody></table></div>
+<p>There is no built-in default because there is no key-free search API worth depending on, and scraping an engine's HTML breaks every few weeks and violates most engines' terms.</p>
+<blockquote>
+<p><strong>An <code>apiKey</code> in <code>config.json</code> is plain text on a removable drive.</strong> Anyone who picks up the pendrive can read it. Use a key you can revoke.</p>
+</blockquote>
+<p>With a provider set, the same box takes either. Type an address and it is fetched; type anything else and it is searched, and the button label changes to match. Results appear above the composer with their title, site and snippet. Click one to fetch it, which turns it into the same attachment chip.</p>
+<p>Searching sends your query to the provider and nothing else. A result is only retrieved when you click it, and the model cannot search or fetch on its own.</p>
 <p>The <code>LINK</code> cell in the readout strip turns amber and reads <code>web access on</code> whenever the switch is on, so the state is always visible.</p>
 <p>Two things to know before you rely on it:</p>
 <ul>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { SearchHit } from '../lib/api'
 import type { Paste } from '../lib/types'
 import { Icon } from './Icon'
 
@@ -10,10 +11,13 @@ interface Props {
   disabledReason?: string | undefined
   /** True only when the launcher's config turns web access on. */
   canFetch: boolean
+  /** True when a search provider is configured on top of that. */
+  canSearch: boolean
   onChange(v: string): void
   onAddPaste(text: string): void
   onRemovePaste(id: string): void
   onFetch(url: string): Promise<void>
+  onSearch(query: string): Promise<SearchHit[]>
   onSend(): void
   onStop(): void
 }
@@ -35,10 +39,12 @@ export function Composer({
   disabled,
   disabledReason,
   canFetch,
+  canSearch,
   onChange,
   onAddPaste,
   onRemovePaste,
   onFetch,
+  onSearch,
   onSend,
   onStop,
 }: Props) {
@@ -49,21 +55,48 @@ export function Composer({
   const [url, setUrl] = useState('')
   const [fetching, setFetching] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [hits, setHits] = useState<SearchHit[] | null>(null)
 
   useEffect(() => {
     if (urlOpen) urlRef.current?.focus()
   }, [urlOpen])
 
-  const runFetch = async () => {
-    const target = url.trim()
-    if (!target || fetching) return
+  const grab = async (target: string) => {
     setFetching(true)
     setFetchError(null)
     try {
-      // A bare domain is what people actually type.
-      await onFetch(/^https?:\/\//i.test(target) ? target : `https://${target}`)
+      await onFetch(target)
       setUrl('')
+      setHits(null)
       setUrlOpen(false)
+    } catch (e) {
+      setFetchError((e as Error).message)
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  // One box, two jobs: an address is fetched, anything else is searched.
+  const submitBar = async () => {
+    const target = url.trim()
+    if (!target || fetching) return
+    if (looksLikeUrl(target)) {
+      await grab(/^https?:\/\//i.test(target) ? target : `https://${target}`)
+      return
+    }
+    if (!canSearch) {
+      setFetchError(
+        'That is not a web address, and no search provider is set up. Add network.search to config.json, or paste a full address.',
+      )
+      return
+    }
+    setFetching(true)
+    setFetchError(null)
+    setHits(null)
+    try {
+      const found = await onSearch(target)
+      setHits(found)
+      if (found.length === 0) setFetchError('Nothing came back for that.')
     } catch (e) {
       setFetchError((e as Error).message)
     } finally {
@@ -153,27 +186,28 @@ export function Composer({
                 className="urlbar-input"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="example.com/page"
-                aria-label="Address to fetch"
+                placeholder={canSearch ? 'Search the web, or paste an address' : 'example.com/page'}
+                aria-label={canSearch ? 'Search or address' : 'Address to fetch'}
                 spellCheck={false}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
-                    void runFetch()
+                    void submitBar()
                   }
                   if (e.key === 'Escape') {
                     setUrlOpen(false)
                     setFetchError(null)
+                    setHits(null)
                   }
                 }}
               />
               <button
                 type="button"
                 className="btn btn-primary btn-small"
-                onClick={() => void runFetch()}
+                onClick={() => void submitBar()}
                 disabled={!url.trim() || fetching}
               >
-                {fetching ? 'Fetching' : 'Fetch'}
+                {fetching ? 'Working' : canSearch && !looksLikeUrl(url.trim()) ? 'Search' : 'Fetch'}
               </button>
               <button
                 type="button"
@@ -181,12 +215,32 @@ export function Composer({
                 onClick={() => {
                   setUrlOpen(false)
                   setFetchError(null)
+                  setHits(null)
                 }}
                 aria-label="Cancel"
               >
                 <Icon name="close" size={15} />
               </button>
             </div>
+          )}
+
+          {hits && hits.length > 0 && (
+            <ul className="hits">
+              {hits.map((h) => (
+                <li key={h.url}>
+                  <button
+                    type="button"
+                    className="hit"
+                    onClick={() => void grab(h.url)}
+                    disabled={fetching}
+                  >
+                    <span className="hit-title">{h.title || h.url}</span>
+                    <span className="hit-host">{hostOf(h.url)}</span>
+                    {h.snippet && <span className="hit-snippet">{h.snippet}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
 
           {fetchError && (
@@ -229,9 +283,10 @@ export function Composer({
                 onClick={() => {
                   setUrlOpen((v) => !v)
                   setFetchError(null)
+                  setHits(null)
                 }}
-                title="Fetch a web page"
-                aria-label="Fetch a web page"
+                title={canSearch ? 'Search the web or fetch a page' : 'Fetch a web page'}
+                aria-label={canSearch ? 'Search the web or fetch a page' : 'Fetch a web page'}
                 aria-expanded={urlOpen}
               >
                 <Icon name="globe" size={18} />
@@ -269,6 +324,21 @@ export function Composer({
       </div>
     </div>
   )
+}
+
+/** An address, as opposed to a search: no spaces, and a dotted host. */
+function looksLikeUrl(s: string): boolean {
+  if (/^https?:\/\//i.test(s)) return true
+  if (/\s/.test(s)) return false
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+(:\d+)?([/?#].*)?$/i.test(s)
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, '')
+  } catch {
+    return url
+  }
 }
 
 function isLong(text: string): boolean {

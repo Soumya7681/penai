@@ -337,3 +337,26 @@ export async function fetchPage(storeBase: string, url: string): Promise<Fetched
     truncated: j.truncated === true,
   }
 }
+
+export interface SearchHit {
+  title: string
+  url: string
+  snippet: string
+}
+
+/**
+ * Run one search through the launcher's configured provider.
+ *
+ * Only the query leaves the machine here; nothing is retrieved. Opening a
+ * result is a separate, explicit fetch.
+ */
+export async function searchWeb(storeBase: string, q: string): Promise<SearchHit[]> {
+  const r = await fetch(`${storeBase}/api/search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q }),
+  })
+  const j = (await r.json().catch(() => ({}))) as { results?: SearchHit[]; error?: string }
+  if (!r.ok) throw new Error(j.error || `the launcher answered ${r.status}`)
+  return Array.isArray(j.results) ? j.results : []
+}

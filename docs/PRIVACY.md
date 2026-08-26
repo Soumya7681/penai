@@ -84,6 +84,13 @@ What stays true with it on:
 - **Visible**: the readout strip's `LINK` cell changes from `offline` to
   `web access on` and turns amber. The state is never hidden from you.
 
+Search, if you configure a provider, adds one more outbound path: the query goes
+to the provider you named, and nothing else. Results are a list of links; opening
+one is a separate fetch, held to every rule above. The provider's own address is
+the one exception to the private-address rule, because a self-hosted SearXNG on
+your LAN is the normal case and that address comes from your config file rather
+than from a page.
+
 What you are accepting with it on:
 
 - **The site learns you visited.** Your IP address, and a `PenAI/1.0` user agent.
@@ -92,6 +99,11 @@ What you are accepting with it on:
   reads it. A page can contain instructions aimed at the model. The fetched block
   is labelled with its source in the prompt, but treat any reply that draws on a
   fetched page the way you would treat the page itself.
+- **A search query is a disclosure.** What you search for goes to the provider,
+  who may log it against your IP address. A SearXNG instance you run yourself is
+  the only option here where that log is yours.
+- **An API key in `config.json` is plain text on a removable drive.** Anyone
+  holding the pendrive can read it. Use a key you can revoke.
 - **The offline guarantee becomes conditional.** With the switch on, PenAI is a
   program that makes outbound requests when asked. If you need the absolute
   version of the promise, leave it off, which is how the drive ships.

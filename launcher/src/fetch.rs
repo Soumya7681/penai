@@ -19,10 +19,28 @@
 //! every mainstream Linux distribution; when it is missing the user is told
 //! exactly that rather than being given a vague failure.
 
+use crate::json::Json;
 use std::fmt;
 use std::net::{IpAddr, ToSocketAddrs};
 use std::process::Command;
 use std::time::Duration;
+
+/// Where search queries go, when search is configured at all.
+///
+/// There is no built-in provider and no default. Scraping a search engine's
+/// HTML would break every few weeks and violates most engines' terms, so PenAI
+/// asks you to point it at something you control or have an account with.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Provider {
+    /// Nothing configured. The UI hides search entirely.
+    None,
+    /// A SearXNG instance, yours or one you trust. No key, JSON API.
+    Searxng { url: String },
+    /// api.search.brave.com, with a subscription token.
+    Brave { key: String },
+    /// api.tavily.com, with an API key.
+    Tavily { key: String },
+}
 
 /// Everything the fetch path is allowed to do, all of it off by default.
 #[derive(Clone, Debug)]
@@ -31,6 +49,8 @@ pub struct Policy {
     pub timeout: Duration,
     pub max_bytes: usize,
     pub user_agent: String,
+    pub provider: Provider,
+    pub max_results: usize,
 }
 
 impl Default for Policy {
@@ -40,6 +60,8 @@ impl Default for Policy {
             timeout: Duration::from_secs(20),
             max_bytes: 2 * 1024 * 1024,
             user_agent: concat!("PenAI/", env!("CARGO_PKG_VERSION")).to_string(),
+            provider: Provider::None,
+            max_results: 6,
         }
     }
 }
@@ -56,8 +78,16 @@ pub struct Page {
 }
 
 #[derive(Debug)]
+pub struct SearchResult {
+    pub title: String,
+    pub url: String,
+    pub snippet: String,
+}
+
+#[derive(Debug)]
 pub enum Error {
     Disabled,
+    NoProvider,
     BadUrl(String),
     Blocked(String),
     NoCurl,
@@ -70,6 +100,10 @@ impl fmt::Display for Error {
             Error::Disabled => write!(
                 f,
                 "web access is off. Turn it on with \"network\": {{ \"enabled\": true }} in config/config.json, then restart."
+            ),
+            Error::NoProvider => write!(
+                f,
+                "no search provider is configured. Set network.search in config/config.json to a SearXNG instance, a Brave key or a Tavily key, then restart."
             ),
             Error::BadUrl(m) => write!(f, "that is not a fetchable address: {}", m),
             Error::Blocked(m) => write!(f, "refused: {}", m),
@@ -287,6 +321,203 @@ pub fn fetch(url: &str, policy: &Policy) -> Result<Page, Error> {
     Ok(Page { url: final_url, title, text, bytes, truncated })
 }
 
+/// Percent-encode for a query string: keep the unreserved set, escape the rest.
+fn encode(q: &str) -> String {
+    let mut out = String::with_capacity(q.len() * 3);
+    for b in q.as_bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => {
+                out.push(*b as char)
+            }
+            _ => out.push_str(&format!("%{:02X}", b)),
+        }
+    }
+    out
+}
+
+/// Run one search and return what the provider found.
+///
+/// Only the query and the provider's own domain are involved here; nothing is
+/// fetched. Opening a result is a separate, explicit `fetch`, which applies the
+/// full address checks. The provider endpoint itself is exempt from the private
+/// address rule, because a self-hosted SearXNG on `192.168.x` or `localhost` is
+/// the normal case and that address comes from config.json, not from a page.
+pub fn search(query: &str, policy: &Policy) -> Result<Vec<SearchResult>, Error> {
+    if !policy.enabled {
+        return Err(Error::Disabled);
+    }
+    let q = query.trim();
+    if q.is_empty() {
+        return Err(Error::BadUrl("the search box is empty".into()));
+    }
+    if q.len() > 512 {
+        return Err(Error::BadUrl("that search is too long".into()));
+    }
+
+    let n = policy.max_results.clamp(1, 20);
+    let body = match &policy.provider {
+        Provider::None => return Err(Error::NoProvider),
+
+        Provider::Searxng { url } => {
+            let base = url.trim_end_matches('/');
+            parse(base)?; // reject anything that is not an http(s) address
+            let target = format!("{}/search?q={}&format=json&safesearch=1", base, encode(q));
+            curl(&target, policy, &[], None)?
+        }
+
+        Provider::Brave { key } => {
+            let target = format!(
+                "https://api.search.brave.com/res/v1/web/search?q={}&count={}",
+                encode(q),
+                n
+            );
+            curl(
+                &target,
+                policy,
+                &[
+                    "Accept: application/json".to_string(),
+                    format!("X-Subscription-Token: {}", key),
+                ],
+                None,
+            )?
+        }
+
+        Provider::Tavily { key } => {
+            let payload = Json::obj(vec![
+                ("api_key", Json::s(key.as_str())),
+                ("query", Json::s(q)),
+                ("max_results", Json::n(n as f64)),
+            ])
+            .dump();
+            curl(
+                "https://api.tavily.com/search",
+                policy,
+                &["Content-Type: application/json".to_string()],
+                Some(&payload),
+            )?
+        }
+    };
+
+    let doc = Json::parse(&body)
+        .map_err(|e| Error::Transport(format!("the provider did not return JSON ({})", e)))?;
+
+    // Brave nests its list; SearXNG and Tavily do not.
+    let list = doc
+        .get("web")
+        .and_then(|w| w.get("results"))
+        .or_else(|| doc.get("results"));
+    let items = match list {
+        Some(Json::Arr(a)) => a,
+        _ => {
+            // Providers report quota and key problems in the body, so pass the
+            // message through rather than saying "no results".
+            if let Some(m) = doc
+                .get("error")
+                .and_then(Json::as_str)
+                .or_else(|| doc.get("message").and_then(Json::as_str))
+                .or_else(|| doc.get("detail").and_then(Json::as_str))
+            {
+                return Err(Error::Transport(m.to_string()));
+            }
+            return Ok(Vec::new());
+        }
+    };
+
+    let mut out = Vec::new();
+    for it in items.iter().take(n) {
+        let url = match it.get("url").and_then(Json::as_str) {
+            Some(u) if parse(u).is_ok() => u.to_string(),
+            _ => continue,
+        };
+        let title = it
+            .get("title")
+            .and_then(Json::as_str)
+            .unwrap_or("")
+            .to_string();
+        let snippet = it
+            .get("content")
+            .or_else(|| it.get("description"))
+            .or_else(|| it.get("snippet"))
+            .and_then(Json::as_str)
+            .unwrap_or("");
+        out.push(SearchResult {
+            title: collapse(&decode_entities(&strip_tags(title.as_str()))),
+            url,
+            snippet: trim_to(&collapse(&decode_entities(&strip_tags(snippet))), 280),
+        });
+    }
+    Ok(out)
+}
+
+/// Providers put `<strong>` around matched words in snippets.
+fn strip_tags(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut inside = false;
+    for c in s.chars() {
+        match c {
+            '<' => inside = true,
+            '>' => inside = false,
+            _ if !inside => out.push(c),
+            _ => {}
+        }
+    }
+    out
+}
+
+fn trim_to(s: &str, max: usize) -> String {
+    if s.chars().count() <= max {
+        return s.to_string();
+    }
+    let mut t: String = s.chars().take(max).collect();
+    t.push_str("...");
+    t
+}
+
+/// One curl invocation, shared by `fetch` and `search`.
+fn curl(
+    url: &str,
+    policy: &Policy,
+    headers: &[String],
+    post_body: Option<&str>,
+) -> Result<String, Error> {
+    let mut c = Command::new("curl");
+    c.arg("--silent")
+        .arg("--show-error")
+        .arg("--location")
+        .arg("--max-redirs").arg("5")
+        .arg("--proto").arg("=http,https")
+        .arg("--proto-redir").arg("=http,https")
+        .arg("--max-time").arg(policy.timeout.as_secs().to_string())
+        .arg("--max-filesize").arg(policy.max_bytes.to_string())
+        .arg("--user-agent").arg(&policy.user_agent);
+    for h in headers {
+        c.arg("--header").arg(h);
+    }
+    if let Some(b) = post_body {
+        c.arg("--data-binary").arg(b);
+    }
+    let out = c
+        .arg("--")
+        .arg(url)
+        .output()
+        .map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                Error::NoCurl
+            } else {
+                Error::Transport(e.to_string())
+            }
+        })?;
+    if !out.status.success() && out.stdout.is_empty() {
+        let msg = String::from_utf8_lossy(&out.stderr).trim().to_string();
+        return Err(Error::Transport(if msg.is_empty() {
+            format!("curl exited with {}", out.status)
+        } else {
+            msg
+        }));
+    }
+    Ok(String::from_utf8_lossy(&out.stdout).to_string())
+}
+
 /// Turn a document into something worth putting in a prompt.
 ///
 /// Not a browser: script, style and comment contents are dropped, tags are
@@ -428,6 +659,7 @@ fn collapse(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::net::loopback;
 
     fn on() -> Policy {
         Policy { enabled: true, ..Policy::default() }
@@ -498,6 +730,117 @@ mod tests {
         assert!(!text.contains("not text"), "script body leaked: {}", text);
         assert!(!text.contains("color:red"), "style leaked: {}", text);
         assert!(!text.contains("comment"), "comment leaked: {}", text);
+    }
+
+    #[test]
+    fn search_needs_a_provider() {
+        assert!(matches!(search("rust 1.85", &on()), Err(Error::NoProvider)));
+    }
+
+    #[test]
+    fn search_is_off_when_the_network_is_off() {
+        let p = Policy { provider: Provider::Brave { key: "k".into() }, ..Policy::default() };
+        assert!(matches!(search("anything", &p), Err(Error::Disabled)));
+    }
+
+    #[test]
+    fn search_rejects_an_empty_or_huge_query() {
+        let p = Policy {
+            enabled: true,
+            provider: Provider::Brave { key: "k".into() },
+            ..Policy::default()
+        };
+        assert!(matches!(search("   ", &p), Err(Error::BadUrl(_))));
+        assert!(matches!(search(&"x".repeat(600), &p), Err(Error::BadUrl(_))));
+    }
+
+    #[test]
+    fn query_encoding_escapes_everything_outside_the_unreserved_set() {
+        assert_eq!(encode("rust 1.85 release"), "rust%201.85%20release");
+        assert_eq!(encode("a&b=c?d#e"), "a%26b%3Dc%3Fd%23e");
+        assert_eq!(encode("caf\u{e9}"), "caf%C3%A9");
+        assert_eq!(encode("safe-._~"), "safe-._~");
+    }
+
+    #[test]
+    fn snippets_lose_their_markup() {
+        assert_eq!(strip_tags("a <strong>bold</strong> claim"), "a bold claim");
+        assert_eq!(trim_to("abcdef", 3), "abc...");
+        assert_eq!(trim_to("abc", 5), "abc");
+    }
+
+    /// A stand-in SearXNG on loopback: exercises the real curl call, the real
+    /// JSON parsing and the real result shaping, with no internet involved.
+    #[test]
+    fn searxng_results_are_parsed() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+
+        let body = r#"{"results":[
+            {"title":"Announcing Rust <strong>1.85</strong>","url":"https://blog.rust-lang.org/x.html","content":"The 2024 edition is stable."},
+            {"title":"Not a link","url":"javascript:alert(1)","content":"should be dropped"},
+            {"title":"Second","url":"https://example.org/two","content":"more text"}
+        ]}"#;
+        let l = TcpListener::bind(loopback(0)).unwrap();
+        let port = l.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            if let Ok((mut c, _)) = l.accept() {
+                let mut buf = [0u8; 2048];
+                let _ = c.read(&mut buf);
+                let _ = c.write_all(
+                    format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        body.len(),
+                        body
+                    )
+                    .as_bytes(),
+                );
+            }
+        });
+
+        let p = Policy {
+            enabled: true,
+            provider: Provider::Searxng { url: format!("http://127.0.0.1:{}", port) },
+            ..Policy::default()
+        };
+        let r = search("rust 1.85", &p).expect("search should parse");
+        assert_eq!(r.len(), 2, "the javascript: result must be dropped: {:?}", r);
+        assert_eq!(r[0].title, "Announcing Rust 1.85", "markup should be stripped");
+        assert_eq!(r[0].url, "https://blog.rust-lang.org/x.html");
+        assert_eq!(r[1].url, "https://example.org/two");
+    }
+
+    #[test]
+    fn a_provider_error_body_is_reported_rather_than_swallowed() {
+        use std::io::{Read, Write};
+        use std::net::TcpListener;
+
+        let body = r#"{"message":"Subscription token invalid"}"#;
+        let l = TcpListener::bind(loopback(0)).unwrap();
+        let port = l.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            if let Ok((mut c, _)) = l.accept() {
+                let mut buf = [0u8; 2048];
+                let _ = c.read(&mut buf);
+                let _ = c.write_all(
+                    format!(
+                        "HTTP/1.1 401 Unauthorized\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                        body.len(),
+                        body
+                    )
+                    .as_bytes(),
+                );
+            }
+        });
+        let p = Policy {
+            enabled: true,
+            provider: Provider::Searxng { url: format!("http://127.0.0.1:{}", port) },
+            ..Policy::default()
+        };
+        match search("q", &p) {
+            Err(Error::Transport(m)) => assert!(m.contains("Subscription token invalid"), "{}", m),
+            other => panic!("expected the provider message, got {:?}", other),
+        }
     }
 
     #[test]

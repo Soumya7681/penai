@@ -161,6 +161,10 @@ fn handle(
                 // The page uses this to decide whether to offer the fetch
                 // control at all, so an off switch is never a dead button.
                 ("fetch", Json::Bool(policy.enabled)),
+                (
+                    "search",
+                    Json::Bool(policy.enabled && policy.provider != fetch::Provider::None),
+                ),
             ])
             .dump();
             respond(s, 200, "application/json", body.as_bytes(), cors)
@@ -211,7 +215,68 @@ fn handle(
                 }
                 Err(e) => {
                     let code = match e {
-                        fetch::Error::Disabled => 403,
+                        fetch::Error::Disabled | fetch::Error::NoProvider => 403,
+                        fetch::Error::BadUrl(_) => 400,
+                        fetch::Error::Blocked(_) => 403,
+                        fetch::Error::NoCurl => 501,
+                        fetch::Error::Transport(_) => 502,
+                    };
+                    let msg = json_error(&e.to_string());
+                    respond(s, code, "application/json", msg.as_bytes(), cors)
+                }
+            }
+        }
+
+        // Search. Same switch as fetch, plus a provider the operator configured.
+        ("POST", "/api/search") => {
+            if !policy.enabled {
+                let msg = json_error(&fetch::Error::Disabled.to_string());
+                return respond(s, 403, "application/json", msg.as_bytes(), cors);
+            }
+            if req.content_length > MAX_FETCH_REQUEST {
+                return respond(
+                    s,
+                    413,
+                    "application/json",
+                    b"{\"error\":\"request too large\"}",
+                    cors,
+                );
+            }
+            let mut body = vec![0u8; req.content_length];
+            reader.read_exact(&mut body)?;
+            let query = match std::str::from_utf8(&body)
+                .ok()
+                .and_then(|t| Json::parse(t).ok())
+                .and_then(|v| v.get("q").and_then(Json::as_str).map(str::to_string))
+            {
+                Some(q) => q,
+                None => {
+                    let msg = json_error("send {\"q\": \"your search\"}");
+                    return respond(s, 400, "application/json", msg.as_bytes(), cors);
+                }
+            };
+
+            match fetch::search(&query, policy) {
+                Ok(results) => {
+                    let arr = Json::Arr(
+                        results
+                            .iter()
+                            .map(|r| {
+                                Json::obj(vec![
+                                    ("title", Json::s(&r.title)),
+                                    ("url", Json::s(&r.url)),
+                                    ("snippet", Json::s(&r.snippet)),
+                                ])
+                            })
+                            .collect(),
+                    );
+                    let doc =
+                        Json::obj(vec![("ok", Json::Bool(true)), ("results", arr)]).dump();
+                    respond(s, 200, "application/json", doc.as_bytes(), cors)
+                }
+                Err(e) => {
+                    let code = match e {
+                        fetch::Error::Disabled | fetch::Error::NoProvider => 403,
                         fetch::Error::BadUrl(_) => 400,
                         fetch::Error::Blocked(_) => 403,
                         fetch::Error::NoCurl => 501,

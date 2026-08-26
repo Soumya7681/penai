@@ -88,10 +88,13 @@ What leaves the machine (nothing), and what the threat model is.">
 <li><strong>Bounded</strong>: a timeout you set (5-120 seconds) and a size cap you set (16 KB to 32 MB), defaulting to 20 seconds and 2 MB.</li>
 <li><strong>Visible</strong>: the readout strip's <code>LINK</code> cell changes from <code>offline</code> to <code>web access on</code> and turns amber. The state is never hidden from you.</li>
 </ul>
+<p>Search, if you configure a provider, adds one more outbound path: the query goes to the provider you named, and nothing else. Results are a list of links; opening one is a separate fetch, held to every rule above. The provider's own address is the one exception to the private-address rule, because a self-hosted SearXNG on your LAN is the normal case and that address comes from your config file rather than from a page.</p>
 <p>What you are accepting with it on:</p>
 <ul>
 <li><strong>The site learns you visited.</strong> Your IP address, and a <code>PenAI/1.0</code> user agent. There is no proxy and no anonymity layer.</li>
 <li><strong>A fetched page is untrusted text written by someone else</strong>, and the model reads it. A page can contain instructions aimed at the model. The fetched block is labelled with its source in the prompt, but treat any reply that draws on a fetched page the way you would treat the page itself.</li>
+<li><strong>A search query is a disclosure.</strong> What you search for goes to the provider, who may log it against your IP address. A SearXNG instance you run yourself is the only option here where that log is yours.</li>
+<li><strong>An API key in <code>config.json</code> is plain text on a removable drive.</strong> Anyone holding the pendrive can read it. Use a key you can revoke.</li>
 <li><strong>The offline guarantee becomes conditional.</strong> With the switch on, PenAI is a program that makes outbound requests when asked. If you need the absolute version of the promise, leave it off, which is how the drive ships.</li>
 </ul>
 <h2 id="security">Security</h2>

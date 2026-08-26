@@ -34,6 +34,12 @@ pub struct Config {
     pub network_enabled: bool,
     pub network_timeout_secs: u64,
     pub network_max_bytes: usize,
+    /// "", "searxng", "brave" or "tavily".
+    pub search_provider: String,
+    /// SearXNG base URL, unused by the key-based providers.
+    pub search_url: String,
+    pub search_key: String,
+    pub search_max_results: u32,
 
     // --- logging ---
     pub log_max_bytes: u64,
@@ -69,6 +75,10 @@ impl Default for Config {
             network_enabled: false,
             network_timeout_secs: 20,
             network_max_bytes: 2 * 1024 * 1024,
+            search_provider: String::new(),
+            search_url: String::new(),
+            search_key: String::new(),
+            search_max_results: 6,
 
             log_max_bytes: 2 * 1024 * 1024,
             log_keep: 3,
@@ -207,6 +217,45 @@ impl Config {
         let mut nb = (c.network_max_bytes / 1024) as u32;
         take_u32(n, "maxKilobytes", &mut nb, &mut w);
         c.network_max_bytes = (nb as usize).clamp(16, 32 * 1024) * 1024;
+
+        let se = n.and_then(|x| x.get("search"));
+        if let Some(v) = se.and_then(|x| x.get("provider")).and_then(Json::as_str) {
+            let v = v.trim().to_ascii_lowercase();
+            match v.as_str() {
+                "" | "none" | "searxng" | "brave" | "tavily" => c.search_provider = v,
+                other => w.push(format!(
+                    "network.search.provider \"{}\" is not one of searxng, brave, tavily; \
+                     search stays off",
+                    other
+                )),
+            }
+        }
+        if let Some(v) = se.and_then(|x| x.get("url")).and_then(Json::as_str) {
+            c.search_url = v.trim().to_string();
+        }
+        if let Some(v) = se.and_then(|x| x.get("apiKey")).and_then(Json::as_str) {
+            c.search_key = v.trim().to_string();
+        }
+        let mut mr = c.search_max_results;
+        take_u32(se, "maxResults", &mut mr, &mut w);
+        c.search_max_results = mr.clamp(1, 20);
+
+        // A provider with nothing to authenticate or point at cannot work, and
+        // silently doing nothing is worse than saying so at startup.
+        match c.search_provider.as_str() {
+            "searxng" if c.search_url.is_empty() => {
+                w.push("network.search.provider is searxng but no url is set; search stays off".into());
+                c.search_provider.clear();
+            }
+            "brave" | "tavily" if c.search_key.is_empty() => {
+                w.push(format!(
+                    "network.search.provider is {} but no apiKey is set; search stays off",
+                    c.search_provider
+                ));
+                c.search_provider.clear();
+            }
+            _ => {}
+        }
 
         // -- logging --
         let lg = root.get("logging");

@@ -409,6 +409,13 @@ fn run() -> Result<(), String> {
                 enabled: cfg.network_enabled,
                 timeout: std::time::Duration::from_secs(cfg.network_timeout_secs),
                 max_bytes: cfg.network_max_bytes,
+                provider: match cfg.search_provider.as_str() {
+                    "searxng" => fetch::Provider::Searxng { url: cfg.search_url.clone() },
+                    "brave" => fetch::Provider::Brave { key: cfg.search_key.clone() },
+                    "tavily" => fetch::Provider::Tavily { key: cfg.search_key.clone() },
+                    _ => fetch::Provider::None,
+                },
+                max_results: cfg.search_max_results as usize,
                 ..fetch::Policy::default()
             },
             log.clone(),

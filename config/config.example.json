@@ -102,10 +102,35 @@
     "the model reads it. timeoutSecs is clamped to 5-120, maxKilobytes to",
     "16-32768."
   ],
+  "_search": [
+    "Search is off unless you name a provider, because there is no key-free",
+    "search API worth depending on and scraping an engine's HTML breaks every",
+    "few weeks. Pick one:",
+    "",
+    "  searxng  - your own SearXNG instance. No key. Set url to its base",
+    "             address, e.g. http://192.168.1.10:8888. A LAN or localhost",
+    "             address is allowed HERE, because you configured it; result",
+    "             links are still held to the usual no-private-addresses rule.",
+    "  brave    - api.search.brave.com. Set apiKey to your subscription token.",
+    "  tavily   - api.tavily.com. Set apiKey to your API key.",
+    "",
+    "WARNING: an apiKey written here sits in plain text on a removable drive.",
+    "Anyone who picks up the pendrive can read it. Use a key you can revoke.",
+    "",
+    "The query itself leaves the machine when you search. Only the query -- the",
+    "model cannot search or fetch on its own, and a result is only retrieved",
+    "when you click it."
+  ],
   "network": {
     "enabled": false,
     "timeoutSecs": 20,
-    "maxKilobytes": 2048
+    "maxKilobytes": 2048,
+    "search": {
+      "provider": "",
+      "url": "",
+      "apiKey": "",
+      "maxResults": 6
+    }
   },
   "logging": {
     "maxFileBytes": 2097152,

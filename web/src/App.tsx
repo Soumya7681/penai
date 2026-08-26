@@ -11,6 +11,7 @@ import {
   checkHealth,
   fetchPage,
   fetchProps,
+  searchWeb,
   loadRuntimeConfig,
   streamChat,
 } from './lib/api'
@@ -74,6 +75,7 @@ export default function App() {
   const [portableBase, setPortableBase] = useState<string | null>(null)
   // Web fetching is a launcher setting, so the page asks the launcher.
   const [canFetch, setCanFetch] = useState(false)
+  const [canSearch, setCanSearch] = useState(false)
   const [portableError, setPortableError] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   // Long pasted blocks wait here until the message is sent.
@@ -110,6 +112,7 @@ export default function App() {
       if (cancelled) return
       setPortableBase(base2)
       setCanFetch(store?.fetch === true)
+      setCanSearch(store?.search === true)
 
       let merged = local
       if (base2) {
@@ -489,6 +492,14 @@ export default function App() {
     [portableBase],
   )
 
+  const runSearch = useCallback(
+    async (q: string) => {
+      if (!portableBase) throw new Error('the launcher is not running, so nothing can be searched')
+      return searchWeb(portableBase, q)
+    },
+    [portableBase],
+  )
+
   const clearAll = useCallback(() => {
     if (busy) return
     if (!window.confirm('Delete every chat on this drive and in this browser? This cannot be undone.')) {
@@ -617,6 +628,7 @@ export default function App() {
               <Welcome
                 modelName={cfg.modelName}
                 canFetch={canFetch}
+                canSearch={canSearch}
                 onPick={(q) => {
                   setDraft(q)
                 }}
@@ -658,7 +670,9 @@ export default function App() {
             setPastes((p) => [...p, { id: newId('paste'), text }])
           }
           canFetch={canFetch}
+          canSearch={canSearch}
           onFetch={addPage}
+          onSearch={runSearch}
           onRemovePaste={(id) => setPastes((p) => p.filter((x) => x.id !== id))}
           onSend={() => void send(composeMessage(pastes, draft))}
           onStop={stop}
@@ -685,10 +699,12 @@ export default function App() {
 function Welcome({
   modelName,
   canFetch,
+  canSearch,
   onPick,
 }: {
   modelName: string
   canFetch: boolean
+  canSearch: boolean
   onPick(q: string): void
 }) {
   // Labelled by the kind of task, not numbered: these are four alternatives, so
@@ -714,9 +730,11 @@ function Welcome({
       <p className="welcome-sub">
         <b>{modelName.replace(/\.gguf$/i, '')}</b> is loaded from the drive and answers on
         this machine&apos;s own CPU. No account and no telemetry.{' '}
-        {canFetch
-          ? 'Web access is on, so a page you fetch by address is requested by the launcher. Nothing else leaves the machine.'
-          : 'No network either.'}
+        {!canFetch
+          ? 'No network either.'
+          : canSearch
+            ? 'Web access is on, so you can search from the composer and open a result. The launcher makes those requests; nothing else leaves the machine, and the model never browses on its own.'
+            : 'Web access is on, so a page you fetch by address is requested by the launcher. Nothing else leaves the machine.'}
       </p>
 
       <div className="samples">

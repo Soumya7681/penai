@@ -40,7 +40,8 @@ prepared, no network dependency of any kind.
 
 There is one deliberate exception, and it is off until you turn it on: with
 `"network": { "enabled": true }` in `config.json`, a globe button appears next to
-the composer and you can fetch one page at a time by address. See
+the composer and you can fetch a page by address. Name a search provider as well
+and the same box searches. The model never browses on its own. See
 [Fetching a web page](docs/USAGE.md#fetching-a-web-page).
 
 ## Quick start

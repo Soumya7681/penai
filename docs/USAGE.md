@@ -132,8 +132,45 @@ the composer as an attachment chip labelled with the site. Expand it to read wha
 was captured, remove it if it is not what you wanted, then type your question and
 send. The page text and your question go to the model together.
 
-It fetches one page, the one you asked for. It does not follow links, there is no
-search, and the model cannot start a fetch on its own.
+### Searching
+
+Fetching needs an address you already know. To find one, name a search provider
+as well:
+
+```json
+"network": {
+  "enabled": true,
+  "search": {
+    "provider": "searxng",
+    "url": "http://192.168.1.10:8888",
+    "apiKey": "",
+    "maxResults": 6
+  }
+}
+```
+
+Three providers are supported, and PenAI ships with none of them configured:
+
+| Provider | What you need | Notes |
+| --- | --- | --- |
+| `searxng` | `url` of an instance | No key. Your own instance is the private option; a LAN or `localhost` address is accepted here because you configured it. Some public instances disable the JSON API. |
+| `brave` | `apiKey` | api.search.brave.com. Free tier available. |
+| `tavily` | `apiKey` | api.tavily.com. Built for feeding search results to models. |
+
+There is no built-in default because there is no key-free search API worth
+depending on, and scraping an engine's HTML breaks every few weeks and violates
+most engines' terms.
+
+> **An `apiKey` in `config.json` is plain text on a removable drive.** Anyone who
+> picks up the pendrive can read it. Use a key you can revoke.
+
+With a provider set, the same box takes either. Type an address and it is
+fetched; type anything else and it is searched, and the button label changes to
+match. Results appear above the composer with their title, site and snippet.
+Click one to fetch it, which turns it into the same attachment chip.
+
+Searching sends your query to the provider and nothing else. A result is only
+retrieved when you click it, and the model cannot search or fetch on its own.
 
 The `LINK` cell in the readout strip turns amber and reads `web access on`
 whenever the switch is on, so the state is always visible.
