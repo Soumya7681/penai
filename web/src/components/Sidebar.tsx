@@ -1,30 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Chat } from '../lib/types'
+import type { Chat, EngineState } from '../lib/types'
+import { BrandMark } from './BrandMark'
+import { Icon } from './Icon'
 
 interface Props {
   chats: Chat[]
   activeId: string | null
   busy: boolean
+  engine: EngineState
   onNew(): void
   onSelect(id: string): void
   onRename(id: string, title: string): void
   onDelete(id: string): void
   onOpenSettings(): void
   open: boolean
-  onToggle(): void
+  onClose(): void
 }
 
 export function Sidebar({
   chats,
   activeId,
   busy,
+  engine,
   onNew,
   onSelect,
   onRename,
   onDelete,
   onOpenSettings,
   open,
-  onToggle,
+  onClose,
 }: Props) {
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -51,77 +55,79 @@ export function Sidebar({
   }
 
   return (
-    <>
-      <button
-        type="button"
-        className="sidebar-toggle"
-        onClick={onToggle}
-        aria-label={open ? 'Hide chat list' : 'Show chat list'}
-        aria-expanded={open}
-      >
-        {open ? '‹' : '›'}
-      </button>
-
-      <aside className={`sidebar ${open ? '' : 'sidebar-closed'}`} aria-label="Chat history">
-        <div className="sidebar-head">
-          <div className="brand">
-            <span className="brand-mark" aria-hidden="true" />
-            <span className="brand-text">PendriveAI</span>
-          </div>
-          <button type="button" className="btn btn-primary btn-block" onClick={onNew}>
-            + New chat
+    <aside
+      className={`sidebar ${open ? '' : 'sidebar-closed'}`}
+      aria-label="Chats"
+    >
+      <div className="sidebar-head">
+        <div className="brand">
+          <BrandMark engine={engine} size={26} />
+          <span>
+            <span className="brand-name">PendriveAI</span>
+            <span className="kicker brand-sub">local · offline</span>
+          </span>
+          <button
+            type="button"
+            className="icon-btn sidebar-collapse"
+            onClick={onClose}
+            aria-label="Hide chats"
+          >
+            <Icon name="panelLeft" size={18} />
           </button>
         </div>
 
-        <nav className="chat-list">
-          {chats.length === 0 && (
-            <p className="empty-note">No chats yet. Ask something to begin.</p>
-          )}
-          {chats.map((c) => {
-            const isActive = c.id === activeId
-            return (
-              <div key={c.id} className={`chat-row ${isActive ? 'chat-row-active' : ''}`}>
-                {editing === c.id ? (
-                  <input
-                    ref={inputRef}
-                    className="chat-rename"
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onBlur={commit}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') commit()
-                      if (e.key === 'Escape') setEditing(null)
-                    }}
-                    aria-label="Chat title"
-                  />
-                ) : (
+        <button type="button" className="new-chat" onClick={onNew} disabled={busy}>
+          <Icon name="plus" />
+          New chat
+        </button>
+      </div>
+
+      <nav className="chat-list">
+        {chats.length > 0 && <span className="kicker list-kicker">Chats</span>}
+
+        {chats.length === 0 && (
+          <p className="empty-note">
+            No chats yet. Ask the first question and one appears here.
+          </p>
+        )}
+
+        {chats.map((c) => {
+          const isActive = c.id === activeId
+          const isEditing = editing === c.id
+          return (
+            <div key={c.id} className={`chat-row ${isActive ? 'chat-row-active' : ''}`}>
+              {isEditing ? (
+                <input
+                  ref={inputRef}
+                  className="chat-rename"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onBlur={commit}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commit()
+                    if (e.key === 'Escape') setEditing(null)
+                  }}
+                  aria-label="Chat title"
+                />
+              ) : (
+                <>
                   <button
                     type="button"
                     className="chat-title"
                     onClick={() => onSelect(c.id)}
                     title={c.title}
+                    aria-current={isActive ? 'true' : undefined}
                   >
                     <span className="chat-title-text">{c.title}</span>
                     <span className="chat-date">{relativeTime(c.updatedAt)}</span>
                   </button>
-                )}
 
-                {editing !== c.id && (
                   <div className="chat-actions">
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      onClick={() => startRename(c)}
-                      title="Rename"
-                      aria-label={`Rename ${c.title}`}
-                    >
-                      Rename
-                    </button>
                     {confirmDelete === c.id ? (
                       <>
                         <button
                           type="button"
-                          className="icon-btn icon-danger"
+                          className="icon-btn icon-btn-sm icon-btn-danger"
                           onClick={() => {
                             onDelete(c.id)
                             setConfirmDelete(null)
@@ -129,46 +135,61 @@ export function Sidebar({
                           disabled={busy && isActive}
                           title={
                             busy && isActive
-                              ? 'Stop the response before deleting this chat'
-                              : 'Confirm delete'
+                              ? 'Stop the reply before deleting this chat'
+                              : 'Delete for good'
                           }
+                          aria-label={`Delete ${c.title} for good`}
                         >
-                          Confirm
+                          <Icon name="check" size={15} />
                         </button>
                         <button
                           type="button"
-                          className="icon-btn"
+                          className="icon-btn icon-btn-sm"
                           onClick={() => setConfirmDelete(null)}
+                          title="Keep it"
+                          aria-label="Keep this chat"
                         >
-                          Cancel
+                          <Icon name="close" size={15} />
                         </button>
                       </>
                     ) : (
-                      <button
-                        type="button"
-                        className="icon-btn icon-danger"
-                        onClick={() => setConfirmDelete(c.id)}
-                        title="Delete"
-                        aria-label={`Delete ${c.title}`}
-                      >
-                        Delete
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          className="icon-btn icon-btn-sm ghost-icon"
+                          onClick={() => startRename(c)}
+                          title="Rename"
+                          aria-label={`Rename ${c.title}`}
+                        >
+                          <Icon name="pencil" size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          className="icon-btn icon-btn-sm icon-btn-danger ghost-icon"
+                          onClick={() => setConfirmDelete(c.id)}
+                          title="Delete"
+                          aria-label={`Delete ${c.title}`}
+                        >
+                          <Icon name="trash" size={15} />
+                        </button>
+                      </>
                     )}
                   </div>
-                )}
-              </div>
-            )
-          })}
-        </nav>
+                </>
+              )}
+            </div>
+          )
+        })}
+      </nav>
 
-        <div className="sidebar-foot">
-          <button type="button" className="btn btn-ghost btn-block" onClick={onOpenSettings}>
-            Settings
-          </button>
-          <p className="foot-note">Runs entirely on this computer.</p>
-        </div>
-      </aside>
-    </>
+      <div className="sidebar-foot">
+        <button type="button" className="btn btn-ghost btn-block" onClick={onOpenSettings}>
+          <Icon name="sliders" />
+          Settings
+        </button>
+        <p className="foot-note">Everything runs on this computer.</p>
+      </div>
+    </aside>
   )
 }
 

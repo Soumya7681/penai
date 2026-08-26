@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PendriveAI - a local AI that runs from a USB drive</title>
+<meta name="description" content="A full local-LLM chat system on an 8 GB pendrive. Plug it in, run one launcher, chat in your browser. No installation, no internet, no admin rights.">
+<link rel="icon" href="assets/mark.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <img src="assets/logo.svg" alt="PendriveAI">
+    <nav>
+      <a href="#what" class="hide-sm">What it is</a>
+      <a href="#how" class="hide-sm">How it works</a>
+      <a href="#specs" class="hide-sm">Specs</a>
+      <a href="docs/">Docs</a>
+      <a class="btn btn-ghost" href="https://github.com/">Source</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<div class="hero wrap">
+  <span class="kicker">Offline local LLM &middot; 8 GB pendrive</span>
+  <h1>Your own AI, in <em>your pocket</em>.</h1>
+  <p>
+    A complete chat system on a USB drive: the model, the engine, the interface and
+    the launcher. Plug it into any computer, run one file, and start typing.
+    Nothing is installed and nothing leaves the machine.
+  </p>
+
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="docs/PENDRIVE.html">Build a drive</a>
+    <a class="btn btn-ghost" href="docs/">Read the docs</a>
+  </div>
+
+  <div class="plate">
+    <span class="cell"><span class="led"></span><b>link</b><span>offline</span></span>
+    <span class="cell"><b>engine</b><span>llama.cpp b10549</span></span>
+    <span class="cell"><b>model</b><span>Qwen3-4B-Instruct</span></span>
+    <span class="cell"><b>install</b><span>none</span></span>
+    <span class="cell"><b>admin rights</b><span>none</span></span>
+  </div>
+
+  <img class="shot" src="assets/app-dark.png" alt="The PendriveAI chat interface answering a question about mutexes" width="1400">
+</div>
+
+<section id="what">
+  <div class="wrap">
+    <span class="kicker">What it is</span>
+    <h2 class="section-title">A website served from your pocket</h2>
+    <p class="section-lead">
+      The drive carries a CPU build of llama.cpp, one GGUF model, a React
+      production build and a small native launcher. The launcher starts the engine
+      on 127.0.0.1, points it at the model and at the web build, waits for it to
+      report healthy, then opens your browser. The page and the model API share one
+      local port, and that port is the only thing the page is allowed to talk to.
+    </p>
+
+    <div class="grid">
+      <div class="card">
+        <span class="kicker">Network</span>
+        <h3>Offline by construction</h3>
+        <p>The page's own Content-Security-Policy limits it to 127.0.0.1. There is no account, no telemetry and no remote host it could reach even if a dependency tried.</p>
+      </div>
+      <div class="card">
+        <span class="kicker">Host machine</span>
+        <h3>Nothing installed</h3>
+        <p>No Node.js, no Python, no Docker, no admin rights. Nothing is written to the registry or to PATH. Unplug the drive and the computer is exactly as you found it.</p>
+      </div>
+      <div class="card">
+        <span class="kicker">History</span>
+        <h3>Chats travel with the drive</h3>
+        <p>Conversations are written to the drive as JSON so they follow it between machines, with a browser-side copy for speed. Export and import are one click.</p>
+      </div>
+      <div class="card">
+        <span class="kicker">Interface</span>
+        <h3>Honest about the machine</h3>
+        <p>A readout strip shows the live engine state, the model file, the llama.cpp build, the real context size, the thread count and where history is being written.</p>
+      </div>
+      <div class="card">
+        <span class="kicker">Replies</span>
+        <h3>Streaming, with a real stop</h3>
+        <p>Server-Sent Events with token deltas, markdown, tables and fenced code blocks with copy buttons. Stop actually frees the engine slot rather than hiding the output.</p>
+      </div>
+      <div class="card">
+        <span class="kicker">Cost</span>
+        <h3>No API bill</h3>
+        <p>The model runs on the host CPU. Roughly 13 tokens per second on a normal laptop, forever, for the price of the pendrive.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <span class="kicker">How it works</span>
+    <h2 class="section-title">Three steps, in this order</h2>
+    <p class="section-lead">
+      Formatting comes first, because the filesystem is what decides whether the
+      launcher is executable on Linux at all.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <h3>Format the drive as exFAT</h3>
+        <p>FAT32 cannot carry the executable bit, so Linux refuses to run the launcher from it. exFAT is readable by Linux, Windows and macOS.</p>
+      </div>
+      <div class="step">
+        <h3>Build and copy a release</h3>
+        <p>One command fetches the runtimes, builds the UI and the launcher, downloads and checksums the model, and copies the result onto the drive.</p>
+        <code>./scripts/build-all.sh --target /media/you/PENDRIVEAI</code>
+      </div>
+      <div class="step">
+        <h3>Plug in and run</h3>
+        <p>Run <code style="display:inline;padding:0;border:0;background:none">StartAI</code> on Linux or <code style="display:inline;padding:0;border:0;background:none">StartAI.exe</code> on Windows. The browser opens by itself once the engine is healthy.</p>
+      </div>
+    </div>
+
+    <p class="note" style="margin-top:24px">
+      The build is resumable. Every step skips itself when its output is already
+      current, so an interrupted run costs nothing to repeat, and changing the
+      interface rebuilds only the interface, not the 2.5 GB model download.
+    </p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="kicker">Interface</span>
+    <h2 class="section-title">Light or dark, whichever the machine prefers</h2>
+    <p class="section-lead">
+      The UI follows the host system's theme, or you can pin one in Settings. It is
+      keyboard-first: Enter sends, Shift+Enter adds a line, Escape closes dialogs,
+      and every control is reachable by tab.
+    </p>
+    <img class="shot" style="margin-top:0" src="assets/app-light.png" alt="The same interface in the light theme" width="1400">
+  </div>
+</section>
+
+<section id="specs">
+  <div class="wrap">
+    <span class="kicker">Specs</span>
+    <h2 class="section-title">What is actually on the drive</h2>
+    <table class="specs">
+      <tr><th>Engine</th><td>llama.cpp <code>b10549</code>, CPU build, trimmed to the files that are actually used</td></tr>
+      <tr><th>Model</th><td>Qwen3-4B-Instruct-2507-Q4_K_M by default, about 2.5 GB. Any GGUF that fits the drive works.</td></tr>
+      <tr><th>Interface</th><td>React 18 and Vite, one JS file and one CSS file, no webfont, served by llama-server itself</td></tr>
+      <tr><th>Launcher</th><td>Rust. Picks a free port, gates on available RAM, guards against a second instance, rotates logs, shuts the engine down cleanly.</td></tr>
+      <tr><th>Drive</th><td>8 GB, formatted exFAT. About 2.6 GB used, so there is room for a second model.</td></tr>
+      <tr><th>Host machine</th><td>Linux x86_64 or Windows x64. 8 GB RAM comfortably; the launcher reduces context rather than letting a smaller machine thrash.</td></tr>
+      <tr><th>Measured speed</th><td>13.2 tokens/second generation, 50.3 tokens/second prompt processing, on the development laptop</td></tr>
+      <tr><th>Licence</th><td>MIT for this project. The model is Apache-2.0 and is not included in the repository.</td></tr>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="wrap" style="text-align:center">
+    <h2 class="section-title" style="margin-bottom:12px">Start with a blank drive</h2>
+    <p class="section-lead" style="margin:0 auto 28px">
+      The full procedure, from formatting to the first answer, is about twenty
+      minutes of waiting and four commands.
+    </p>
+    <div class="hero-actions" style="margin-top:0">
+      <a class="btn btn-primary" href="docs/PENDRIVE.html">Preparing the pendrive</a>
+      <a class="btn btn-ghost" href="docs/STATUS.html">What is verified so far</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap row">
+    <span>PendriveAI &middot; MIT licensed &middot; runs on your machine, not ours</span>
+    <span><a href="docs/">Documentation</a> &middot; <a href="docs/PRIVACY.html">Privacy</a> &middot; <a href="docs/TROUBLESHOOTING.html">Troubleshooting</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

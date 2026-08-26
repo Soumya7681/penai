@@ -4,6 +4,8 @@ import { StatusBar } from './components/StatusBar'
 import { MessageBubble } from './components/MessageBubble'
 import { Composer } from './components/Composer'
 import { SettingsPanel } from './components/SettingsPanel'
+import { BrandMark } from './components/BrandMark'
+import { Icon } from './components/Icon'
 import {
   buildWireMessages,
   checkHealth,
@@ -39,6 +41,13 @@ import { newId } from './lib/types'
 
 const EMPTY: StoreSnapshot = { version: 1, chats: [], messages: [] }
 
+/** Below this width the chat list is a drawer over the thread, not a column. */
+const NARROW = '(max-width: 860px)'
+
+function isNarrow(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia(NARROW).matches
+}
+
 function defaultSettings(cfg: RuntimeConfig): Settings {
   return {
     temperature: cfg.defaults.temperature,
@@ -66,7 +75,9 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [banner, setBanner] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  // Open as a column on a desktop, shut as a drawer on a phone.
+  const [sidebarOpen, setSidebarOpen] = useState(() => !isNarrow())
+  const [showJump, setShowJump] = useState(false)
   const [booted, setBooted] = useState(false)
 
   const abortRef = useRef<AbortController | null>(null)
@@ -194,7 +205,17 @@ export default function App() {
     const el = scrollRef.current
     if (!el) return
     // "Pinned" means the user is at the bottom; only then do we auto-scroll.
-    pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    const pinned = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+    pinnedRef.current = pinned
+    setShowJump(!pinned && el.scrollHeight > el.clientHeight + 160)
+  }, [])
+
+  const jumpToLatest = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+    pinnedRef.current = true
+    setShowJump(false)
   }, [])
 
   const messages = useMemo(
@@ -207,6 +228,11 @@ export default function App() {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [messages, busy])
+
+  // Switching chats starts at the newest message with no jump prompt showing.
+  useEffect(() => {
+    setShowJump(false)
+  }, [activeId])
 
   // -------------------------------------------------------------- actions
   const newChat = useCallback(() => {
@@ -467,9 +493,10 @@ export default function App() {
     return (
       <div className="boot">
         <div className="boot-card">
-          <span className="brand-mark brand-mark-lg" aria-hidden="true" />
+          <BrandMark size={40} engine="starting" />
           <h1>PendriveAI</h1>
-          <p>Starting the local AI...</p>
+          <p>Loading the model from the drive. The first start is the slow one.</p>
+          <div className="boot-bar" role="progressbar" aria-label="Starting" />
         </div>
       </div>
     )
@@ -485,17 +512,34 @@ export default function App() {
         chats={chats}
         activeId={activeId}
         busy={busy}
-        onNew={newChat}
+        engine={engine}
+        onNew={() => {
+          newChat()
+          if (isNarrow()) setSidebarOpen(false)
+        }}
         onSelect={(id) => {
           setActiveId(id)
           pinnedRef.current = true
+          if (isNarrow()) setSidebarOpen(false)
         }}
         onRename={renameChat}
         onDelete={deleteChat}
-        onOpenSettings={() => setShowSettings(true)}
+        onOpenSettings={() => {
+          setShowSettings(true)
+          if (isNarrow()) setSidebarOpen(false)
+        }}
         open={sidebarOpen}
-        onToggle={() => setSidebarOpen((v) => !v)}
+        onClose={() => setSidebarOpen(false)}
       />
+
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="scrim"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Hide chats"
+        />
+      )}
 
       <main className="main">
         <StatusBar
@@ -507,13 +551,19 @@ export default function App() {
           threads={settings.threads || navigatorThreadHint()}
           portable={Boolean(portableBase && settings.portableStorage)}
           portableError={portableError}
+          onMenu={() => setSidebarOpen(true)}
         />
 
         {banner && (
           <div className="banner" role="status">
             <span>{banner}</span>
-            <button type="button" className="icon-btn" onClick={() => setBanner(null)}>
-              Dismiss
+            <button
+              type="button"
+              className="icon-btn icon-btn-sm"
+              onClick={() => setBanner(null)}
+              aria-label="Dismiss"
+            >
+              <Icon name="close" size={15} />
             </button>
           </div>
         )}
@@ -521,9 +571,9 @@ export default function App() {
         {engine === 'disconnected' && (
           <div className="banner banner-error" role="alert">
             <span>
-              The AI engine is not responding{engineDetail ? ` (${engineDetail})` : ''}. It may
-              still be loading, or the launcher window may have been closed. Check the launcher
-              window, then reload this page.
+              The engine is not answering{engineDetail ? ` (${engineDetail})` : ''}. It may still
+              be loading, or the launcher window may have been closed. Check the launcher window,
+              then reload this page.
             </span>
           </div>
         )}
@@ -543,12 +593,19 @@ export default function App() {
                   key={m.id}
                   message={m}
                   streaming={busy && m.role === 'assistant' && m === messages[messages.length - 1]}
-                  onRetry={m.error ? () => retry(m.id) : undefined}
+                  onRetry={m.role === 'assistant' && !busy ? () => retry(m.id) : undefined}
                 />
               ))}
             </div>
           )}
         </div>
+
+        {showJump && (
+          <button type="button" className="jump" onClick={jumpToLatest}>
+            <Icon name="arrowDown" size={15} />
+            Latest message
+          </button>
+        )}
 
         <Composer
           value={draft}
@@ -589,24 +646,32 @@ function Welcome({
   modelName: string
   onPick(q: string): void
 }) {
+  // Labelled by the kind of task, not numbered: these are four alternatives, so
+  // numbering them would claim an order that is not there.
   const samples = [
-    'Explain what a mutex is, with a short example.',
-    'Write a Python function that parses a CSV file and returns a list of dicts.',
-    'Why does my React component re-render on every keystroke?',
-    'Summarise the difference between TCP and UDP in five bullet points.',
+    { kind: 'explain', text: 'Explain what a mutex is, with a short example.' },
+    { kind: 'write', text: 'Write a Python function that parses a CSV file into a list of dicts.' },
+    { kind: 'debug', text: 'Why does my React component re-render on every keystroke?' },
+    { kind: 'compare', text: 'Compare TCP and UDP in five bullet points.' },
   ]
   return (
     <div className="welcome">
-      <span className="brand-mark brand-mark-lg" aria-hidden="true" />
-      <h1>Offline AI, running from your pocket</h1>
+      <div className="welcome-top">
+        <BrandMark size={32} />
+        <span className="kicker">PendriveAI</span>
+      </div>
+
+      <h1>Ask anything. Nothing leaves this computer.</h1>
       <p className="welcome-sub">
-        {modelName.replace(/\.gguf$/i, '')} is loaded on this computer. Nothing you type
-        leaves the machine.
+        <b>{modelName.replace(/\.gguf$/i, '')}</b> is loaded from the drive and answers on
+        this machine&apos;s own CPU. No account, no network, no telemetry.
       </p>
+
       <div className="samples">
         {samples.map((s) => (
-          <button key={s} type="button" className="sample" onClick={() => onPick(s)}>
-            {s}
+          <button key={s.kind} type="button" className="sample" onClick={() => onPick(s.text)}>
+            <span className="kicker">{s.kind}</span>
+            {s.text}
           </button>
         ))}
       </div>

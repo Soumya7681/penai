@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Running PendriveAI - PendriveAI docs</title>
+<meta name="description" content="Running PendriveAI
+Starting the drive on Linux and Windows, and how the browser behaves.">
+<link rel="icon" href="../assets/mark.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Docs</a>
+      <a class="btn btn-ghost" href="https://github.com/">Source</a>
+    </nav>
+  </div>
+</header>
+<div class="docs">
+<nav class="docnav">
+<a href="index.html">All documentation</a>
+<span class="kicker">Start here</span>
+<a href="STATUS.html">Status</a>
+<a href="OVERVIEW.html">Overview</a>
+<a href="REQUIREMENTS.html">Requirements</a>
+<span class="kicker">Build a drive</span>
+<a href="MODELS.html">Model setup</a>
+<a href="PENDRIVE.html">Preparing the pendrive</a>
+<a href="BUILD.html">Building a release</a>
+<a href="DEVELOPMENT.html">Development setup</a>
+<span class="kicker">Live with it</span>
+<a href="USAGE.html" class="current">Running PendriveAI</a>
+<a href="TROUBLESHOOTING.html">Troubleshooting</a>
+<a href="LIMITATIONS.html">Known limitations</a>
+<a href="PRIVACY.html">Privacy and security</a>
+<span class="kicker">Deeper</span>
+<a href="ARCHITECTURE.html">Architecture</a>
+<a href="TESTING.html">Testing</a>
+</nav>
+<article class="doc">
+<h1>Running PendriveAI</h1>
+<p>Starting the drive on Linux and Windows, and how the browser behaves.</p>
+<hr>
+<h2 id="starting-pendriveai">Starting PendriveAI</h2>
+<p><strong>Linux, exFAT or any drive that allows execution:</strong></p>
+<pre><code class="lang-bash">cd /media/&lt;you&gt;/PENDRIVEAI
+./StartAI</code></pre>
+<p><strong>Linux, FAT32 (or any <code>noexec</code> mount):</strong></p>
+<pre><code class="lang-bash">cd /media/&lt;you&gt;/PENDRIVEAI
+sh StartAI.sh</code></pre>
+<p><code>StartAI.sh</code> copies the launcher and the llama.cpp runtime into a local temporary directory, marks them executable, and runs the launcher with <code>PENDRIVEAI_ROOT</code> pointing back at the pendrive. The model and the web assets are still read from the drive, so nothing large is copied.</p>
+<p><strong>Windows:</strong></p>
+<pre><code>StartAI.exe          (if you built it)
+StartAI.bat          (zero-compile fallback: double-click it, or run it from cmd)</code></pre>
+<p><code>StartAI.bat</code> needs nothing installed, but chats started under it stay in that browser's storage on that computer rather than on the drive, and closing the console window stops the engine. <a href="BUILD.html#building-the-windows-release">Building the Windows release</a> lists everything it does not do.</p>
+<p><strong>CLI flags:</strong></p>
+<div class="tablewrap"><table><thead><tr>
+<th>Flag</th>
+<th>Effect</th>
+</tr></thead><tbody>
+<tr><td><code>--port &lt;n&gt;</code></td><td>Force a specific port instead of automatic selection</td></tr>
+<tr><td><code>--ctx &lt;n&gt;</code></td><td>Force a context size</td></tr>
+<tr><td><code>--threads &lt;n&gt;</code></td><td>Force a CPU thread count</td></tr>
+<tr><td><code>--no-browser</code></td><td>Start the engine but do not open a browser</td></tr>
+<tr><td><code>--force</code></td><td>Start even when the RAM gate says the model will not fit</td></tr>
+<tr><td><code>--quiet</code></td><td>Reduce console output</td></tr>
+<tr><td><code>-V</code>, <code>--version</code></td><td>Print the launcher version</td></tr>
+<tr><td><code>-h</code>, <code>--help</code></td><td>Print usage</td></tr>
+</tbody></table></div>
+<p><strong>What the launcher does, in order:</strong></p>
+<ol>
+<li>Resolve its own directory and find the project root.</li>
+<li>Read the config and create the data directories.</li>
+<li>Open a rotating log.</li>
+<li>Enforce single instance.</li>
+<li>Probe hardware: OS, architecture, logical cores, total and available RAM.</li>
+<li>Locate and sanity-check the model file.</li>
+<li>Query the engine version.</li>
+<li>Assess whether RAM is sufficient, and reduce the context if it is tight.</li>
+<li>Pick a free loopback port.</li>
+<li>Spawn <code>llama-server</code> as a child process with an argv array.</li>
+<li>Stream child stdout and stderr into rotating logs.</li>
+<li>Poll <code>/v1/health</code> until the engine is ready.</li>
+<li>Start the optional chat-history sidecar.</li>
+<li>Write <code>web/runtime-config.json</code>.</li>
+<li>Open the default browser.</li>
+<li>Supervise the child, and stop it cleanly on Ctrl+C.</li>
+</ol>
+<p><strong>Thread selection.</strong> With 2 or fewer cores it uses all of them; with 4 or fewer, cores minus 1; otherwise <code>max(cores / 2, 4)</code>. The result is always clamped to the range 1 to 16. The reason is that llama.cpp CPU inference is memory-bandwidth-bound, so using every logical core is often *slower* and leaves the machine unusable for anything else.</p>
+<p><strong>Port selection.</strong> It prefers 8080. If that is busy it scans 8081 to 8180. If all of those are busy it asks the OS for an ephemeral port. If <code>llama-server</code> still fails to bind, the launcher retries on a different port, up to 3 attempts.</p>
+<p><strong>The RAM gate.</strong> The launcher estimates weights plus KV cache plus about 400 MiB of buffers.</p>
+<ul>
+<li>Fits with 512 MiB to spare: start normally.</li>
+<li>Tight: warn, then halve the context repeatedly until it fits, with a floor of 512.</li>
+<li>Cannot fit at all: refuse, explain why, and require <code>--force</code> to override.</li>
+<li>RAM cannot be read: warn and continue, making no capability claim.</li>
+</ul>
+<p>The launcher never promises that the model will run. It tells you what it measured and what it decided.</p>
+<p><strong>Measured performance, development machine only.</strong> Intel-class x86_64, 12 logical cores, 15 GiB RAM, model on a local SSD, context 4096, 6 threads:</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Metric</th>
+<th>Measured</th>
+</tr></thead><tbody>
+<tr><td>Model load time</td><td>6 seconds</td></tr>
+<tr><td>Generation</td><td>13.2 tokens/second</td></tr>
+<tr><td>Prompt processing</td><td>50.3 tokens/second</td></tr>
+</tbody></table></div>
+<p>These are one-machine measurements, not a guarantee. Loading from the pendrive itself will be slower than 6 seconds: the measured write speed on the test drive was 3.4 MB/s, and while reads are faster they are still far below SSD.</p>
+<p><strong>Logs</strong> live in <code>data/logs/</code>: <code>launcher.log</code>, <code>llama-server.stdout.log</code> and <code>llama-server.stderr.log</code>. Rotation is size-bounded, 2 MiB per file by default, 3 generations kept. If the drive is read-only, logging degrades to console output instead of failing.</p>
+<h2 id="browser-url-behaviour">Browser URL behaviour</h2>
+<p>The UI lives at:</p>
+<pre><code>http://127.0.0.1:&lt;PORT&gt;</code></pre>
+<p><code>&lt;PORT&gt;</code> is printed by the launcher. It is usually 8080.</p>
+<p>Two behaviours are worth knowing, because both come from llama.cpp's static file handler rather than from our code.</p>
+<p><strong>There is no SPA deep-route fallback.</strong> An unknown path such as <code>/some/deep/route</code> returns HTTP 404. This is why the UI is deliberately single-route with no client-side router. Bookmark the bare origin, not a subpath.</p>
+<p><strong><code>--no-webui</code> must never be passed.</strong> Verified behaviour: <code>--path &lt;dir&gt;</code> makes <code>llama-server</code> serve our React build at <code>/</code> and replaces llama.cpp's own bundled web UI, which is what we want. But adding <code>--no-webui</code> disables the entire static file handler, and then both <code>/</code> and <code>/probe.txt</code> return HTTP 404. The launcher never passes it, and there is a unit test asserting that.</p>
+<p>Also served on the same origin, from the same process:</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Endpoint</th>
+<th>Purpose</th>
+</tr></thead><tbody>
+<tr><td><code>GET /v1/health</code></td><td>200 <code>{"status":"ok"}</code> when ready, 503 while loading. <code>/health</code> is probed as a fallback</td></tr>
+<tr><td><code>GET /props</code></td><td>Engine details, including context size</td></tr>
+<tr><td><code>GET /slots</code></td><td>Slot state, for example <code>is_processing</code></td></tr>
+<tr><td><code>POST /v1/chat/completions</code></td><td>Chat, with <code>"stream": true</code> for SSE</td></tr>
+<tr><td><code>GET /v1/models</code></td><td>Model listing</td></tr>
+</tbody></table></div>
+<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+reads as plain markdown in the repository under <code>docs/</code>.</p>
+</article>
+</div>
+</body>
+</html>

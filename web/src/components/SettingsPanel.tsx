@@ -1,5 +1,6 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import type { Settings } from '../lib/types'
+import { Icon } from './Icon'
 
 interface Props {
   settings: Settings
@@ -25,6 +26,18 @@ export function SettingsPanel({
   onClearAll,
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  // Escape closes the panel, and focus starts inside it, so the dialog can be
+  // opened and dismissed without a pointer.
+  useEffect(() => {
+    closeRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   return (
     <div className="modal-backdrop" onClick={onClose} role="presentation">
@@ -37,8 +50,14 @@ export function SettingsPanel({
       >
         <header className="modal-head">
           <h2>Settings</h2>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close settings">
-            Close
+          <button
+            ref={closeRef}
+            type="button"
+            className="icon-btn"
+            onClick={onClose}
+            aria-label="Close settings"
+          >
+            <Icon name="close" size={18} />
           </button>
         </header>
 
@@ -178,6 +197,7 @@ export function SettingsPanel({
 
             <div className="row-buttons">
               <button type="button" className="btn btn-ghost" onClick={onExport}>
+                <Icon name="download" size={15} />
                 Export all chats
               </button>
               <button
@@ -185,6 +205,7 @@ export function SettingsPanel({
                 className="btn btn-ghost"
                 onClick={() => fileRef.current?.click()}
               >
+                <Icon name="upload" size={15} />
                 Import from file
               </button>
               <input
@@ -199,6 +220,7 @@ export function SettingsPanel({
                 }}
               />
               <button type="button" className="btn btn-danger" onClick={onClearAll}>
+                <Icon name="trash" size={15} />
                 Delete all chats
               </button>
             </div>

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model setup - PendriveAI docs</title>
+<meta name="description" content="Model setup
+Choosing, downloading and verifying the GGUF model the drive carries.">
+<link rel="icon" href="../assets/mark.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Docs</a>
+      <a class="btn btn-ghost" href="https://github.com/">Source</a>
+    </nav>
+  </div>
+</header>
+<div class="docs">
+<nav class="docnav">
+<a href="index.html">All documentation</a>
+<span class="kicker">Start here</span>
+<a href="STATUS.html">Status</a>
+<a href="OVERVIEW.html">Overview</a>
+<a href="REQUIREMENTS.html">Requirements</a>
+<span class="kicker">Build a drive</span>
+<a href="MODELS.html" class="current">Model setup</a>
+<a href="PENDRIVE.html">Preparing the pendrive</a>
+<a href="BUILD.html">Building a release</a>
+<a href="DEVELOPMENT.html">Development setup</a>
+<span class="kicker">Live with it</span>
+<a href="USAGE.html">Running PendriveAI</a>
+<a href="TROUBLESHOOTING.html">Troubleshooting</a>
+<a href="LIMITATIONS.html">Known limitations</a>
+<a href="PRIVACY.html">Privacy and security</a>
+<span class="kicker">Deeper</span>
+<a href="ARCHITECTURE.html">Architecture</a>
+<a href="TESTING.html">Testing</a>
+</nav>
+<article class="doc">
+<h1>Model setup</h1>
+<p>Choosing, downloading and verifying the GGUF model the drive carries.</p>
+<hr>
+<p>PendriveAI v1 ships exactly one model.</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Field</th>
+<th>Value</th>
+</tr></thead><tbody>
+<tr><td>Name</td><td>Qwen3-4B-Instruct-2507</td></tr>
+<tr><td>Quantisation</td><td>Q4_K_M (GGUF)</td></tr>
+<tr><td>Hugging Face repo</td><td><code>unsloth/Qwen3-4B-Instruct-2507-GGUF</code></td></tr>
+<tr><td>File</td><td><code>Qwen3-4B-Instruct-2507-Q4_K_M.gguf</code></td></tr>
+<tr><td>Size</td><td>2,497,281,120 bytes (2.33 GiB / 2.50 GB)</td></tr>
+<tr><td>SHA-256</td><td><code>3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597</code></td></tr>
+<tr><td>Licence</td><td>Apache-2.0, not gated, no login required</td></tr>
+</tbody></table></div>
+<p>Direct URL:</p>
+<pre><code>https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf</code></pre>
+<p>Quick download:</p>
+<pre><code class="lang-bash">cd models
+./download-model.sh          # Linux and macOS
+# or
+powershell -File download-model.ps1   # Windows</code></pre>
+<p>The launcher expects the file at <code>models/model.gguf</code> by default. It will also accept any single <code>.gguf</code> file in <code>models/</code> (the largest wins), or an explicit <code>model.file</code> entry in the config.</p>
+<p><strong>Why this model.</strong> Apache-2.0 allows commercial use. 4B parameters is the sweet spot for CPU chat plus programming help. Q4_K_M fits an 8 GB drive with room to spare and stays under the FAT32 4 GiB per-file limit. It is the non-thinking "Instruct" variant, so it answers directly instead of emitting long reasoning traces.</p>
+<p>Alternative quantisations, other usable models, manual download instructions and per-platform checksum verification are documented in <a href="README.html"><code>models/README.md</code></a>.</p>
+<p>The model is <strong>never committed to git</strong>. <code>.gitignore</code> excludes <code>*.gguf</code>.</p>
+<p><strong>Before you copy the model onto a pendrive, format the drive.</strong> The choice of filesystem decides whether the model will even fit: FAT32 caps a single file at 4 GiB, so Q4_K_M at 2.50 GB is fine but Q8_0 at 4.28 GB cannot be stored at all. exFAT removes that limit and also lets the launcher execute directly on Linux. Step-by-step instructions for Linux, Windows and macOS are in <a href="PENDRIVE.html#format-the-pendrive-first-do-this-before-anything-else">[Format the pendrive first</a>, Format the pendrive first](#format-the-pendrive-first-do-this-before-anything-else).</p>
+<h2 id="which-models-can-i-use">Which models can I use?</h2>
+<p>v1 ships exactly one model, and <strong>the launcher loads exactly one model at a time</strong>. There is no model picker in the UI. Swapping models means replacing <code>models/model.gguf</code> (or setting <code>model.file</code> in <code>config/config.json</code>) and restarting the launcher.</p>
+<p><strong>Hard requirements for any replacement:</strong></p>
+<ol>
+<li><strong>GGUF format.</strong> llama.cpp does not load <code>.safetensors</code>, <code>.bin</code> or PyTorch checkpoints. It must be a <code>.gguf</code> file.</li>
+<li><strong>An architecture supported by the packaged llama.cpp build <code>b10549</code>.</strong> A model whose architecture is newer than the bundled engine will fail to load.</li>
+<li><strong>It must fit in RAM alongside the KV cache.</strong> See the sizing rule below.</li>
+<li><strong>On FAT32, the single file must stay under 4 GiB.</strong> exFAT removes this limit.</li>
+<li><strong>For chat use it must be instruct or chat-tuned.</strong> A base or completion model will not follow a conversation; it will just continue your text.</li>
+</ol>
+<p><strong>What we actually tested.</strong> Only <strong>Qwen3-4B-Instruct-2507-Q4_K_M</strong> has been tested by us: measured 13.2 tok/s generation, 50.3 tok/s prompt processing, and a 6 second load, on the development machine described in <a href="USAGE.html#starting-pendriveai">Starting PendriveAI</a>. Everything else listed below <strong>should work, but was not tested here</strong>.</p>
+<h2 id="same-family-different-size-or-quality">Same family, different size or quality</h2>
+<p>All Apache-2.0. These live in <code>unsloth/Qwen3-4B-Instruct-2507-GGUF</code>, or in the matching <code>unsloth/Qwen3-&lt;size&gt;-GGUF</code> repo for the smaller models.</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Model</th>
+<th>Params</th>
+<th>Quant</th>
+<th>Approx size</th>
+<th>Licence</th>
+<th>Notes</th>
+</tr></thead><tbody>
+<tr><td><strong>Qwen3-4B-Instruct-2507</strong></td><td>4B</td><td><strong>Q4_K_M</strong></td><td><strong>2.50 GB</strong></td><td>Apache-2.0</td><td><strong>The shipped default.</strong> Best balance for 8 GB drives</td></tr>
+<tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q3_K_M</td><td>2.08 GB</td><td>Apache-2.0</td><td>For machines with about 4 GB RAM; some quality loss</td></tr>
+<tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q2_K</td><td>1.67 GB</td><td>Apache-2.0</td><td>Last resort for very low RAM; noticeably worse</td></tr>
+<tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q5_K_M</td><td>2.89 GB</td><td>Apache-2.0</td><td>Better quality if you have 8 GB+ RAM and drive space</td></tr>
+<tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q6_K</td><td>3.31 GB</td><td>Apache-2.0</td><td>Higher quality, slower on CPU</td></tr>
+<tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q8_0</td><td>4.28 GB</td><td>Apache-2.0</td><td><strong>EXCEEDS the FAT32 4 GiB single-file limit. exFAT only</strong></td></tr>
+<tr><td>Qwen3-1.7B</td><td>1.7B</td><td>Q4_K_M</td><td>see repo</td><td>Apache-2.0</td><td>Much faster on weak CPUs, clearly weaker at reasoning and code</td></tr>
+<tr><td>Qwen3-0.6B</td><td>0.6B</td><td>Q4_0</td><td>382 MB</td><td>Apache-2.0</td><td>Only useful for testing that the plumbing works; too weak for real use</td></tr>
+</tbody></table></div>
+<p>Two notes on Qwen3-0.6B. We did use it during development for fast integration testing, because it loads in a fraction of the time. It is also a <strong>thinking</strong> variant, so it emits <code>reasoning_content</code>, which the UI renders in a separate collapsible block rather than mixing it into the answer.</p>
+<h2 id="other-families-worth-knowing-about">Other families worth knowing about</h2>
+<div class="tablewrap"><table><thead><tr>
+<th>Model</th>
+<th>Params</th>
+<th>Quant</th>
+<th>Approx size</th>
+<th>Licence</th>
+<th>Notes</th>
+</tr></thead><tbody>
+<tr><td>Qwen2.5-Coder-3B-Instruct</td><td>3B</td><td>GGUF, your choice</td><td>see repo</td><td><strong>Check the specific repo.</strong> Some Qwen2.5 sizes are released under a Qwen research licence rather than Apache-2.0, so verify before commercial use</td><td>Stronger at code than at general chat</td></tr>
+<tr><td>Llama-3.2-3B-Instruct</td><td>3B</td><td>GGUF, your choice</td><td>see repo</td><td>Llama 3.2 Community Licence. Acceptable-use terms plus naming and attribution requirements, not a plain open-source licence</td><td>Capable general model</td></tr>
+<tr><td>Gemma-3-4B-IT</td><td>4B</td><td>GGUF, your choice</td><td>see repo</td><td>Gemma Terms of Use, which carry usage restrictions</td><td>Capable general model</td></tr>
+<tr><td>Phi-4-mini-instruct</td><td>3.8B</td><td>GGUF, your choice</td><td>see repo</td><td>MIT</td><td>Strong at reasoning for its size</td></tr>
+<tr><td>SmolLM3-3B</td><td>3B</td><td>GGUF, your choice</td><td>see repo</td><td>Apache-2.0</td><td>Small and fast</td></tr>
+</tbody></table></div>
+<blockquote>
+<p><strong>Licence warning.</strong> We verified the licence only for <strong>Qwen3-4B-Instruct-2507</strong> (Apache-2.0, confirmed on the upstream <code>Qwen/Qwen3-4B-Instruct-2507</code> repository). For anything else, <strong>check the licence on the actual repository you download from.</strong> Quantised re-uploads sometimes state a different licence from the original weights.</p>
+</blockquote>
+<h2 id="how-to-swap-the-model">How to swap the model</h2>
+<ol>
+<li>Download the replacement <code>.gguf</code>.</li>
+<li>Put it in <code>models/</code> on the drive.</li>
+<li>Either rename it to <code>model.gguf</code>, or set <code>"model": { "file": "your-file.gguf" }</code> in <code>config/config.json</code>.</li>
+<li>If it is much bigger than the old one, lower <code>llama.ctxSize</code> (or pass <code>--ctx</code>) so that it still fits in RAM.</li>
+<li>Restart the launcher. The status bar in the UI will show the new model name and the engine's reported context size.</li>
+</ol>
+<p>If several <code>.gguf</code> files are present and <code>model.file</code> is empty, the launcher picks the <strong>largest</strong> one, with ties broken by filename, so the choice is deterministic rather than dependent on directory order.</p>
+<h2 id="ram-sizing-rule-of-thumb">RAM sizing rule of thumb</h2>
+<p>Needed RAM is roughly:</p>
+<pre><code>model file size
+  + about 144 KiB per context token   (for a 4B-class model)
+  + about 400 MiB of buffers</code></pre>
+<p>So for a 4B-class model, the KV cache costs about <strong>0.6 GiB at ctx 4096</strong> and about <strong>1.2 GiB at ctx 8192</strong>.</p>
+<p>The launcher computes this itself, warns when it is tight, and reduces the context automatically rather than letting the machine thrash. See <a href="USAGE.html#starting-pendriveai">Starting PendriveAI</a>.</p>
+<h2 id="not-supported-in-v1">Not supported in v1</h2>
+<ul>
+<li><strong>Multimodal and vision models.</strong> The <code>mtmd</code> library is bundled with the llama.cpp release, but the launcher does not wire up an image path, so there is no way to send an image.</li>
+<li><strong>Embedding-only models.</strong> The UI is a chat client and expects <code>/v1/chat/completions</code>.</li>
+<li><strong>GPU-accelerated builds.</strong> The shipped runtime is CPU-only by choice, for portability across unknown machines and for size.</li>
+</ul>
+<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+reads as plain markdown in the repository under <code>docs/</code>.</p>
+</article>
+</div>
+</body>
+</html>

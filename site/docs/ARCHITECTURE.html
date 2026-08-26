@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PendriveAI Architecture - PendriveAI docs</title>
+<meta name="description" content="PendriveAI Architecture
+This document explains how PendriveAI is put together and, more usefully, *why* each decision was made. Where a claim was measured, it s">
+<link rel="icon" href="../assets/mark.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Docs</a>
+      <a class="btn btn-ghost" href="https://github.com/">Source</a>
+    </nav>
+  </div>
+</header>
+<div class="docs">
+<nav class="docnav">
+<a href="index.html">All documentation</a>
+<span class="kicker">Start here</span>
+<a href="STATUS.html">Status</a>
+<a href="OVERVIEW.html">Overview</a>
+<a href="REQUIREMENTS.html">Requirements</a>
+<span class="kicker">Build a drive</span>
+<a href="MODELS.html">Model setup</a>
+<a href="PENDRIVE.html">Preparing the pendrive</a>
+<a href="BUILD.html">Building a release</a>
+<a href="DEVELOPMENT.html">Development setup</a>
+<span class="kicker">Live with it</span>
+<a href="USAGE.html">Running PendriveAI</a>
+<a href="TROUBLESHOOTING.html">Troubleshooting</a>
+<a href="LIMITATIONS.html">Known limitations</a>
+<a href="PRIVACY.html">Privacy and security</a>
+<span class="kicker">Deeper</span>
+<a href="ARCHITECTURE.html" class="current">Architecture</a>
+<a href="TESTING.html">Testing</a>
+</nav>
+<article class="doc">
+<h1>PendriveAI Architecture</h1>
+<p>This document explains how PendriveAI is put together and, more usefully, *why* each decision was made. Where a claim was measured, it says so. Where something was not verified, it says that too.</p>
+<p>Every technical statement here refers to llama.cpp release <code>b10549</code> (published 2026-08-21) from <code>ggml-org/llama.cpp</code>, and to the model <code>Qwen3-4B-Instruct-2507-Q4_K_M.gguf</code>.</p>
+<hr>
+<h2 id="table-of-contents">Table of contents</h2>
+<ol>
+<li><a href="#1-system-architecture">System architecture</a></li>
+<li><a href="#2-process-flow">Process flow</a></li>
+<li><a href="#3-portable-path-strategy">Portable path strategy</a></li>
+<li><a href="#4-linux-architecture">Linux architecture</a></li>
+<li><a href="#5-windows-architecture">Windows architecture</a></li>
+<li><a href="#6-web-serving-strategy">Web serving strategy</a></li>
+<li><a href="#7-llm-api-integration">LLM API integration</a></li>
+<li><a href="#8-storage-strategy">Storage strategy</a></li>
+<li><a href="#9-security-model">Security model</a></li>
+<li><a href="#10-packaging-strategy">Packaging strategy</a></li>
+<ul>
+<li><a href="#preparing-the-drive-filesystem-choice-and-formatting">Preparing the drive: filesystem choice and formatting</a></li>
+</ul>
+<li><a href="#11-the-8-gb-storage-budget">The 8 GB storage budget</a></li>
+</ol>
+<hr>
+<h2 id="1-system-architecture">1. System architecture</h2>
+<p>PendriveAI has exactly two processes at runtime, plus one thread pool inside the first of them. That is the whole system.</p>
+<pre><code>+--------------------------------------------------------------------------+
+|  Host computer (nothing installed, no admin rights, no network)          |
+|                                                                          |
+|   +------------------------+                                             |
+|   |  Default browser       |                                             |
+|   |  http://127.0.0.1:PORT |                                             |
+|   +-----------+------------+                                             |
+|               |                                                          |
+|      HTTP on loopback (one origin, one port)                              |
+|               |                                                          |
+|      +--------+---------+--------------------------+                     |
+|      |                  |                          |                     |
+|   GET /             POST /v1/chat/completions   GET /api/chats            |
+|   GET /assets/*     GET /v1/health, /props      PUT /api/chats            |
+|      |              GET /slots                     |                     |
+|      v                  v                          v                     |
+|  +-----------------------------------+   +------------------------+       |
+|  |  llama-server  (child process)    |   |  Storage sidecar       |       |
+|  |  llama.cpp b10549, CPU only       |   |  thread inside StartAI |       |
+|  |  bound to 127.0.0.1 ONLY          |   |  127.0.0.1:47611       |       |
+|  |                                   |   +-----------+------------+       |
+|  |  --path  -&gt; serves web/ at /      |               |                    |
+|  |  --model -&gt; models/model.gguf     |               v                    |
+|  +---------------+-------------------+   data/chats/chats.json (on drive) |
+|                  ^                                                        |
+|                  | spawn + supervise (argv array, no shell)               |
+|                  |                                                        |
+|  +---------------+-------------------------------------------+            |
+|  |  StartAI  (Rust launcher, std only, single binary)        |            |
+|  |  hardware probe, RAM gate, port pick, health wait,        |            |
+|  |  log rotation, single-instance guard, browser open        |            |
+|  +----------------------------------------------------------+            |
+|                  ^                                                        |
++------------------|--------------------------------------------------------+
+                   |
+        +----------+-----------------------------------------+
+        |  USB pendrive (8 GB, FAT32 or exFAT)               |
+        |  runtime/  models/  web/  config/  data/           |
+        +----------------------------------------------------+</code></pre>
+<h3 id="component-choices">Component choices</h3>
+<div class="tablewrap"><table><thead><tr>
+<th>Layer</th>
+<th>Choice</th>
+<th>Why</th>
+</tr></thead><tbody>
+<tr><td>Inference</td><td>llama.cpp prebuilt <code>b10549</code>, CPU</td><td>Official prebuilt binaries, 15 CPU-feature variants selected at runtime, so one drive runs on many machines</td></tr>
+<tr><td>Launcher</td><td>Rust edition 2021, <strong>zero external crates</strong></td><td>See below</td></tr>
+<tr><td>UI</td><td>React 18 + TypeScript, Vite 6</td><td>Runtime deps are only <code>react</code> and <code>react-dom</code></td></tr>
+<tr><td>Static serving</td><td><code>llama-server --path</code></td><td>No second server and no Node.js on the host. See section 6</td></tr>
+<tr><td>Chat storage</td><td>IndexedDB + optional JSON sidecar</td><td>See section 8</td></tr>
+</tbody></table></div>
+<h3 id="why-rust-with-zero-dependencies">Why Rust with zero dependencies</h3>
+<p>The launcher is written in Rust, edition 2021, using only <code>std</code> plus a handful of <code>libc</code> and <code>kernel32</code> FFI symbols that are already linked into every Rust binary on the respective platform. The HTTP client, the HTTP server, the JSON parser, the memory query and the signal handling are all hand-written.</p>
+<p>Three reasons:</p>
+<ol>
+<li>It builds on an air-gapped machine that has nothing but a Rust toolchain. <code>cargo build --release</code> needs no registry access at all.</li>
+<li>It produces one small native binary that needs no interpreter and no runtime on the target computer.</li>
+<li>It keeps a crate supply chain out of an offline, security-sensitive tool.</li>
+</ol>
+<p>Alternatives that were considered and rejected:</p>
+<ul>
+<li><strong>Go.</strong> Not installed on the build machine, and it would need a toolchain download. Otherwise a reasonable fit.</li>
+<li><strong>C or C++.</strong> Considerably more manual work to get safe process handling and safe thread handling right, for no size benefit worth the risk.</li>
+</ul>
+<p>The release profile is tuned for size rather than speed, because the launcher spends nearly all of its life waiting on a child process:</p>
+<pre><code class="lang-toml">[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+panic = "unwind"</code></pre>
+<p><code>panic = "unwind"</code> is deliberate rather than an oversight: a panicking sidecar connection thread must not take down the whole process and orphan the engine.</p>
+<h3 id="launcher-modules">Launcher modules</h3>
+<div class="tablewrap"><table><thead><tr>
+<th>Module</th>
+<th>Responsibility</th>
+</tr></thead><tbody>
+<tr><td><code>main.rs</code></td><td>Orchestration and the startup sequence</td></tr>
+<tr><td><code>paths.rs</code></td><td>Root discovery and portable layout construction</td></tr>
+<tr><td><code>config.rs</code></td><td>Config parsing, defaults, clamping, warnings</td></tr>
+<tr><td><code>sysinfo.rs</code></td><td>OS, arch, logical cores, total and available RAM</td></tr>
+<tr><td><code>net.rs</code></td><td>Loopback port selection, HTTP client, health polling</td></tr>
+<tr><td><code>child.rs</code></td><td>argv construction, spawn, supervise, terminate</td></tr>
+<tr><td><code>logging.rs</code></td><td>Rotating logs, unwritable-destination degradation</td></tr>
+<tr><td><code>json.rs</code></td><td>Minimal JSON parse and serialise</td></tr>
+<tr><td><code>lock.rs</code></td><td>Single-instance guard and <code>instance.json</code></td></tr>
+<tr><td><code>store.rs</code></td><td>The portable chat-history sidecar</td></tr>
+<tr><td><code>browser.rs</code></td><td>Default-browser launch with a URL allowlist</td></tr>
+<tr><td><code>signals.rs</code></td><td>Ctrl+C handling and graceful shutdown</td></tr>
+</tbody></table></div>
+<hr>
+<h2 id="2-process-flow">2. Process flow</h2>
+<p>The launcher runs a fixed sixteen-step sequence. Each step either succeeds, or degrades with a stated warning, or refuses with an explanation. It never guesses.</p>
+<pre><code> 1  resolve own directory                    std::env::current_exe()
+ 2  find project root                        marker -&gt; structure -&gt; env var
+ 3  read config                              config/config.json, defaults on absence
+ 4  create data dirs                         data/logs, data/chats, data/run
+ 5  open rotating log                        degrade to console if read-only
+ 6  enforce single instance                  bind 127.0.0.1:47610
+ 7  probe hardware                           OS, arch, cores, total + available RAM
+ 8  locate and sanity-check the model        name -&gt; largest .gguf -&gt; config
+ 9  query engine version                     llama-server --version
+10  assess RAM, reduce context if tight      ok / tight / unlikely / unknown
+11  pick a free loopback port                8080 -&gt; 8081..8180 -&gt; ephemeral
+12  spawn llama-server                       argv array, no shell
+13  stream child stdout/stderr to logs       dedicated threads
+14  poll /v1/health until ready              fallback probe on /health
+15  start sidecar, write runtime-config.json optional, non-fatal
+16  open browser, supervise, clean shutdown  SIGTERM then kill</code></pre>
+<h3 id="step-7-and-10-the-ram-gate">Step 7 and 10: the RAM gate</h3>
+<p>The launcher refuses to make a capability claim it cannot support. It computes an estimate from facts about the model, not from a guess:</p>
+<ul>
+<li>Weights: 2,497,281,120 bytes on disk.</li>
+<li>KV cache: the model has 36 layers, 8 KV heads (GQA) and head_dim 128, so the f16 KV cache is <code>2 * 36 * 8 * 128 * 2 = 147,456</code> bytes per token, that is 144 KiB per token. At context 4096 that is roughly 0.6 GiB.</li>
+<li>Buffers: about 400 MiB.</li>
+</ul>
+<p>Four outcomes:</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Assessment</th>
+<th>Action</th>
+</tr></thead><tbody>
+<tr><td>Fits with 512 MiB spare</td><td>Start normally</td></tr>
+<tr><td>Tight</td><td>Warn, then halve the context repeatedly until it fits, floor 512</td></tr>
+<tr><td>Cannot fit</td><td>Refuse with an explanation, require <code>--force</code> to override</td></tr>
+<tr><td>RAM unreadable</td><td>Warn, continue, make no capability claim</td></tr>
+</tbody></table></div>
+<p>The footprint estimate growing with context size is unit-tested, as are all four assessment outcomes.</p>
+<h3 id="step-12-thread-selection">Step 12: thread selection</h3>
+<pre><code>cores &lt;= 2   -&gt;  all cores
+cores &lt;= 4   -&gt;  cores - 1
+otherwise    -&gt;  max(cores / 2, 4)
+always clamped to 1..16</code></pre>
+<p>llama.cpp CPU inference is memory-bandwidth-bound. Saturating every logical core often makes generation *slower* while making the machine unusable for anything else, so the default leaves headroom. <code>--threads</code> overrides it.</p>
+<h3 id="step-11-port-selection">Step 11: port selection</h3>
+<p>Preference order is 8080, then a scan of 8081 to 8180, then an OS-assigned ephemeral port. If <code>llama-server</code> still fails to bind, the launcher retries on a different port for up to 3 attempts. Port busy detection and the fallback path are both unit-tested.</p>
+<h3 id="step-6-single-instance">Step 6: single instance</h3>
+<p>The mutex is a <strong>bound loopback socket on port 47610</strong>, not a lock file. A lock file on a pendrive is actively dangerous: pull the drive out, or crash, and a stale lock survives to block every future run. The OS releases a socket unconditionally when the process dies.</p>
+<p>The launcher writes <code>data/run/instance.json</code> containing the live URL, so a second launch is not an error. It reads the file and reopens the browser at the session that is already running. A corrupt <code>instance.json</code> is handled and tested.</p>
+<h3 id="step-16-shutdown">Step 16: shutdown</h3>
+<p>On Linux the child is given <code>PR_SET_PDEATHSIG</code> at spawn time, so <code>llama-server</code> can never outlive the launcher, even if the launcher is killed. Shutdown sends SIGTERM, waits a grace period, then escalates to a kill.</p>
+<p>On Windows shutdown uses <code>TerminateProcess</code>. <strong>Windows shutdown is therefore not graceful.</strong> This is a known limitation, not a bug to be discovered later.</p>
+<hr>
+<h2 id="3-portable-path-strategy">3. Portable path strategy</h2>
+<p>A pendrive has no stable path. It is <code>/media/alice/PENDRIVEAI</code> on one machine, <code>/run/media/bob/My Drive</code> on another, and <code>D:\PendriveAI</code> on Windows. The entire launcher is built around never knowing its own location until runtime.</p>
+<p>Rules the code obeys:</p>
+<ul>
+<li>No drive letters.</li>
+<li>No home directories.</li>
+<li>No absolute project paths anywhere in the source.</li>
+</ul>
+<p>Root discovery, in order:</p>
+<ol>
+<li>Start from <code>std::env::current_exe()</code>.</li>
+<li>Walk up at most 4 levels looking for a <code>.pendriveai-root</code> marker file.</li>
+<li>Fall back to structural detection, that is, a directory that contains the expected <code>runtime/</code>, <code>models/</code> and <code>web/</code> shape.</li>
+<li>Allow an explicit override through the <code>PENDRIVEAI_ROOT</code> environment variable.</li>
+</ol>
+<p>Step 4 is what makes the FAT32 bootstrap possible: <code>StartAI.sh</code> copies the executable parts to a local temporary directory and then points <code>PENDRIVEAI_ROOT</code> back at the pendrive, so the binary runs from local disk while the model and web assets are still read from the drive.</p>
+<p>Layout construction is written as a <strong>pure function</strong> from a root path to a set of derived paths. That makes it directly unit-testable without touching a real filesystem, and it is tested against four simulated roots including a Windows-style one:</p>
+<pre><code>/media/someone/PENDRIVEAI
+/run/media/other-user/My Drive     (note the space)
+/tmp/x/y/z
+D:\PendriveAI</code></pre>
+<p>Root discovery is separately tested through both the marker-file path and the structural path.</p>
+<hr>
+<h2 id="4-linux-architecture">4. Linux architecture</h2>
+<p>The tested platform.</p>
+<pre><code>runtime/linux/
+├── llama-server            the only binary we launch
+└── lib*.so                 trimmed shared library set, real files not symlinks</code></pre>
+<p>Verified properties of the prebuilt Linux runtime:</p>
+<ul>
+<li>Downloaded asset: <code>llama-b10549-bin-ubuntu-x64.tar.gz</code>, 16.7 MB.</li>
+<li>Extracted: 41 MB. After trimming to only what <code>llama-server</code> needs, roughly 40 to 45 MB.</li>
+<li>Binaries carry <code>RUNPATH=$ORIGIN</code>, so <strong>no <code>LD_LIBRARY_PATH</code> is required</strong>. The launcher does not set one and does not need to.</li>
+<li><code>objdump</code> shows a requirement of <strong>glibc 2.34 or newer</strong>. That means Ubuntu 22.04+, Debian 12+, Fedora 35+. Older distributions will not run these binaries at all.</li>
+<li><code>llama-server --version</code> prints <code>version: 0.1.2-dev (build 10549, commit b2e5e9b28)</code>. The launcher queries this and logs it, so a bug report always carries the exact engine build.</li>
+</ul>
+<h3 id="the-fat32-execution-problem">The FAT32 execution problem</h3>
+<p>Measured on the real test drive, which was FAT32 mounted with <code>showexec</code>:</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Test</th>
+<th>Result</th>
+</tr></thead><tbody>
+<tr><td><code>./binary</code> on a compiled ELF</td><td>"Permission denied", and <code>chmod +x</code> had no effect</td></tr>
+<tr><td>Symlink creation</td><td>"Operation not permitted"</td></tr>
+<tr><td>Hard link creation</td><td>"Operation not permitted"</td></tr>
+<tr><td>Case sensitivity</td><td>Case-insensitive</td></tr>
+<tr><td>Write speed</td><td>3.4 MB/s</td></tr>
+</tbody></table></div>
+<p>Under <code>showexec</code>, only files named <code>.exe</code>, <code>.com</code> or <code>.bat</code> receive an execute bit. A Linux ELF named <code>StartAI</code> can never be executed from such a mount, and no amount of <code>chmod</code> changes that.</p>
+<p>Two answers ship:</p>
+<ol>
+<li><strong><code>StartAI.sh</code></strong>, run as <code>sh StartAI.sh</code>. It copies the launcher and the llama.cpp runtime into a local temporary directory, marks them executable, and runs the launcher with <code>PENDRIVEAI_ROOT</code> pointing back at the pendrive. Only the small executable parts are copied; the 2.50 GB model is still read from the drive. <strong>This bootstrap has not been tested end to end.</strong></li>
+<li><strong>Reformat to exFAT.</strong> This is the recommended fix. exFAT allows direct execution on Linux and removes the 4 GiB per-file limit, while staying readable on Windows and macOS.</li>
+</ol>
+<pre><code class="lang-bash">lsblk                                     # CONFIRM the device first
+sudo apt install exfatprogs
+udisksctl unmount -b /dev/sdX1
+sudo mkfs.exfat -n PENDRIVEAI /dev/sdX1   # ERASES THE DRIVE</code></pre>
+<p>The full procedure, including partition-table repair, GUI alternatives, and the Windows and macOS equivalents, is in <a href="#preparing-the-drive-filesystem-choice-and-formatting">section 10, Preparing the drive</a>.</p>
+<hr>
+<h2 id="5-windows-architecture">5. Windows architecture</h2>
+<pre><code>runtime/windows/
+├── llama-server.exe
+└── *.dll                   trimmed DLL set</code></pre>
+<p>Verified properties of the prebuilt Windows runtime:</p>
+<ul>
+<li>Downloaded asset: <code>llama-b10549-bin-win-cpu-x64.zip</code>, 18.6 MB.</li>
+<li>Extracted: 46 MB. Trimmed, roughly 40 to 45 MB.</li>
+</ul>
+<p>Windows is architecturally simpler than Linux in exactly one respect that matters: <strong><code>.exe</code> runs normally on FAT32</strong>, so the <code>showexec</code> problem described in section 4 does not exist there, and no staging bootstrap is needed.</p>
+<p>It is harder in two respects:</p>
+<ul>
+<li><strong><code>StartAI.exe</code> was not built.</strong> The build machine has no mingw-w64 and no MSVC toolchain, and installing one was declined. It must be built on Windows with <code>cargo build --release</code> using the MSVC toolchain, or cross-compiled from Linux after <code>sudo apt install mingw-w64</code> and <code>rustup target add x86_64-pc-windows-gnu</code>, then <code>cargo build --release --target x86_64-pc-windows-gnu</code>.</li>
+<li><strong>A zero-compile fallback is shipped instead.</strong> <code>StartAI.bat</code> uses only <code>cmd.exe</code> and PowerShell, both built into Windows, so the drive is usable on a Windows machine with no compiler present. It is one file: a batch header that reads the file back, cuts everything after a <code>#@PSBEGIN@</code> marker and hands that text to PowerShell as a *command*, so no temporary <code>.ps1</code> is written and the script-file execution policy does not apply.</li>
+</ul>
+<p>It reproduces config parsing, model resolution, the thread rule, the port scan, <code>web/runtime-config.json</code>, the llama-server argv and the health wait. It does not reproduce the RAM gate (it warns but never reduces the context), the single-instance guard, log rotation or the chat-history sidecar.</p>
+<p><strong>The entire Windows path is untested on real Windows hardware.</strong> <code>StartAI.bat</code> is untested. Treat both as design intent that has been written but not exercised.</p>
+<p>Windows-specific behaviour inside the launcher: memory is queried through <code>kernel32</code> FFI, and shutdown uses <code>TerminateProcess</code>, which means the engine is killed rather than asked to stop.</p>
+<hr>
+<h2 id="6-web-serving-strategy">6. Web serving strategy</h2>
+<p>This is the decision that shapes everything else, so it is worth spelling out.</p>
+<p>The UI is a static Vite production build: <code>web/index.html</code> plus <code>web/assets/</code>. Something has to serve it over HTTP. Three options were considered.</p>
+<h3 id="option-a-chosen-llama-server---path-web">Option A, chosen: <code>llama-server --path web/</code></h3>
+<p>llama.cpp's own static file handler serves the build.</p>
+<pre><code>--path &lt;dir&gt;     serve static files from &lt;dir&gt;</code></pre>
+<p>Consequences, all of them good:</p>
+<ul>
+<li><strong>No second server process.</strong> One <code>llama-server</code> handles the UI and the API.</li>
+<li><strong>No Node.js, no Python, no Docker on the target computer.</strong> The whole point.</li>
+<li><strong>One port, one origin, therefore no CORS problem at all.</strong> The page fetches <code>/v1/chat/completions</code> on its own origin.</li>
+<li><strong>Nothing extra to trim, ship or maintain.</strong> The handler is already in the binary we were going to ship anyway.</li>
+</ul>
+<p>Verified: <code>--path</code> serves a custom <code>index.html</code> and a custom asset at <code>/</code>, and it <strong>replaces</strong> llama.cpp's bundled web UI rather than sitting alongside it.</p>
+<h3 id="option-b-rejected-bundle-a-small-static-server">Option B, rejected: bundle a small static server</h3>
+<p>Shipping something like a single-binary static file server would have meant another binary per platform, another licence, another 5 to 15 MB, a second port, and a genuine CORS configuration problem between the UI origin and the API origin. All of that to duplicate a feature <code>llama-server</code> already has.</p>
+<h3 id="option-c-rejected-write-a-static-server-into-the-launcher">Option C, rejected: write a static server into the launcher</h3>
+<p>Technically easy, since the launcher already contains a std-only HTTP server for the storage sidecar. Rejected because it would still create a second origin and therefore a CORS problem, and because hand-written MIME handling and path sanitisation for arbitrary asset trees is exactly the kind of code that grows security bugs. The sidecar avoids that risk by exposing <strong>only fixed routes</strong>, which a static file server cannot do by definition.</p>
+<h3 id="the---no-webui-finding">The <code>--no-webui</code> finding</h3>
+<p>This is non-obvious and it cost real debugging time, so it is documented prominently:</p>
+<blockquote>
+<p>Passing <code>--no-webui</code> <strong>disables the entire static file handler</strong>. With <code>--no-webui</code>, both <code>/</code> and <code>/probe.txt</code> return HTTP 404.</p>
+</blockquote>
+<p>The intuition was that <code>--path</code> would override the bundled UI while <code>--no-webui</code> would suppress it, so the two together would be a belt-and-braces way of guaranteeing our build is what gets served. That intuition is wrong: they are the same handler. <code>--path</code> alone already replaces the bundled UI.</p>
+<p><strong><code>--no-webui</code> must never be passed.</strong> There is a unit test that asserts it never appears in the constructed argv.</p>
+<h3 id="no-spa-deep-route-fallback">No SPA deep-route fallback</h3>
+<p>Also verified: an unknown path such as <code>/some/deep/route</code> returns HTTP 404. The static handler does not fall back to <code>index.html</code>.</p>
+<p>That is a hard constraint, not a preference, and the UI is designed around it: <strong>the web app is deliberately single-route with no client-side router.</strong> Chat selection, settings and history are all state within one page, never URLs. Adding React Router later would produce 404s on refresh and on bookmarking, so it is not a small future change.</p>
+<h3 id="vite-configuration-consequences">Vite configuration consequences</h3>
+<ul>
+<li><code>base: './'</code> so assets resolve relatively from any mount path. The release folder can sit at any path on any drive, and the mount point is unknown at build time.</li>
+<li><strong>No code splitting</strong>, one JS file and one CSS file. <code>llama-server</code> serves plain files with no HTTP/2 push, and the drive is slow, so one request beats a dozen round trips. It also means there are no dynamic-import paths to resolve.</li>
+<li>No source maps, since they would inflate the drive for no offline benefit.</li>
+<li>Markdown and code-block rendering are hand-written into React elements. This drops a heavy markdown and syntax-highlighting dependency, and because nothing is ever assigned to <code>innerHTML</code>, there is no XSS surface. The cost, accepted deliberately, is that there is <strong>no syntax highlighting</strong>.</li>
+<li><code>llama-server</code> static serving does not gzip, so first paint is bounded by drive read speed.</li>
+</ul>
+<p>For development, <code>npm run dev</code> runs Vite on port 5173 and proxies <code>/v1</code>, <code>/props</code> and <code>/slots</code> to <code>http://127.0.0.1:8080</code>, so the dev UI behaves like the packaged one.</p>
+<hr>
+<h2 id="7-llm-api-integration">7. LLM API integration</h2>
+<p>The UI talks to llama.cpp's OpenAI-compatible HTTP API on the same origin.</p>
+<h3 id="flags-the-launcher-actually-passes">Flags the launcher actually passes</h3>
+<pre><code>--model &lt;path&gt;            models/model.gguf
+--host 127.0.0.1          never 0.0.0.0, not configurable
+--port &lt;n&gt;                chosen by the launcher
+--ctx-size &lt;n&gt;            possibly reduced by the RAM gate
+--threads &lt;n&gt;             chosen by the thread heuristic
+--parallel &lt;n&gt;
+--path &lt;dir&gt;              serve the React build (see section 6)
+--cors-origins localhost  instead of the default *
+--flash-attn auto</code></pre>
+<p>And, critically, <strong>never</strong> <code>--no-webui</code>.</p>
+<h3 id="endpoints-used">Endpoints used</h3>
+<div class="tablewrap"><table><thead><tr>
+<th>Endpoint</th>
+<th>Behaviour</th>
+</tr></thead><tbody>
+<tr><td><code>GET /v1/health</code></td><td>200 <code>{"status":"ok"}</code> when ready, 503 while still loading. <code>/health</code> is probed as a fallback</td></tr>
+<tr><td><code>GET /props</code></td><td>Engine details including context size</td></tr>
+<tr><td><code>GET /slots</code></td><td>Slot state, for example <code>is_processing</code></td></tr>
+<tr><td><code>POST /v1/chat/completions</code></td><td>Chat, streaming or not</td></tr>
+<tr><td><code>GET /v1/models</code></td><td>Model listing</td></tr>
+</tbody></table></div>
+<p>The 503-while-loading behaviour is what makes step 14 of the startup sequence possible: the launcher polls until it sees 200 and only then opens the browser, so the user never lands on a page that cannot answer. On the development machine that took 6 seconds. Health polling has both an abort path and a timeout path, each with its own message, and both are unit-tested.</p>
+<h3 id="streaming">Streaming</h3>
+<p><code>POST /v1/chat/completions</code> with <code>"stream": true</code> returns Server-Sent Events. Verified frame shape:</p>
+<pre><code>data: {"choices":[{"delta":{"content":"Hel"}}], ...}
+data: {"choices":[{"delta":{"content":"lo"}}], ...}
+data: [DONE]</code></pre>
+<ul>
+<li>Token deltas arrive as <code>choices[0].delta.content</code>.</li>
+<li>Qwen3 <strong>thinking</strong> models additionally send <code>choices[0].delta.reasoning_content</code>. The UI renders that in a separate collapsible block, so a reasoning trace never contaminates the answer text. The model shipped in v1 is the non-thinking Instruct variant, so this path is usually dormant.</li>
+<li><code>stream_options: {include_usage: true}</code> produces a final chunk with an empty <code>choices</code> array plus <code>usage</code> and <code>timings</code>. <code>timings.predicted_per_second</code> is what the UI displays as tokens per second, and what gets stored on a message as <code>tokensPerSecond</code>.</li>
+</ul>
+<h3 id="stopping-generation">Stopping generation</h3>
+<p>There is <strong>no stop endpoint</strong>. Generation is stopped by aborting the HTTP request, using the browser's <code>AbortController</code>.</p>
+<p>Verified after a client abort: <code>/v1/health</code> still returns 200, and <code>/slots</code> shows <code>is_processing: false</code>, so the slot is freed. In other words the obvious implementation is also the correct one, and it leaves no wedged state behind.</p>
+<h3 id="measured-performance">Measured performance</h3>
+<p>Development machine only: Intel-class x86_64, 12 logical cores, 15 GiB RAM, model on a local SSD, context 4096, 6 threads.</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Metric</th>
+<th>Measured</th>
+</tr></thead><tbody>
+<tr><td>Model load time</td><td>6 seconds</td></tr>
+<tr><td>Generation</td><td>13.2 tokens/second</td></tr>
+<tr><td>Prompt processing</td><td>50.3 tokens/second</td></tr>
+</tbody></table></div>
+<p><strong>These are one-machine measurements and not a guarantee.</strong> Loading from the pendrive itself will be slower than 6 seconds, because the measured write speed on the test drive was 3.4 MB/s and reads, while faster, are still far below SSD.</p>
+<hr>
+<h2 id="8-storage-strategy">8. Storage strategy</h2>
+<p>Two stores, one of which is optional, plus an honest statement of what each one can and cannot do.</p>
+<h3 id="primary-store-indexeddb">Primary store: IndexedDB</h3>
+<p>Chats live in IndexedDB in the browser.</p>
+<p><strong>The limitation must be stated plainly, not buried:</strong> IndexedDB is tied to the origin *and* to the browser profile on the host computer. So by default chats stay on that computer and <strong>do not travel with the pendrive</strong>. Plug the drive into a second machine and the sidebar is empty. That is the correct behaviour of IndexedDB, not a defect in the UI, and it is the reason the second store exists.</p>
+<p>Settings, separately, live in <code>localStorage</code>.</p>
+<h3 id="portable-store-the-chat-history-sidecar">Portable store: the chat-history sidecar</h3>
+<p>A small HTTP server compiled into the launcher binary. std-only Rust: no database, no Node.js, no Python, no Docker. It listens on <code>127.0.0.1:47611</code> and persists one JSON document to <code>data/chats/chats.json</code> on the pendrive, so history travels with the drive.</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Endpoint</th>
+<th>Purpose</th>
+</tr></thead><tbody>
+<tr><td><code>GET /api/health</code></td><td>Liveness</td></tr>
+<tr><td><code>GET /api/chats</code></td><td>Read the whole document</td></tr>
+<tr><td><code>PUT /api/chats</code></td><td>Replace the whole document</td></tr>
+</tbody></table></div>
+<p>Three routes and one file. That is the entire surface, and keeping it that small is what makes the security properties below achievable.</p>
+<p>If the sidecar cannot start, because the drive is read-only, the port is busy, or it is disabled in config, the UI silently falls back to IndexedDB only. <strong>It is an enhancement, never a hard dependency</strong>, and the fallback is on the normal code path rather than an error path.</p>
+<h3 id="data-model">Data model</h3>
+<p><strong>Chat:</strong> <code>id</code>, <code>title</code>, <code>createdAt</code>, <code>updatedAt</code>, plus a <code>deleted</code> tombstone.</p>
+<p>The tombstone exists for a specific reason: without it, deleting a chat on computer A and then syncing from computer B would resurrect it, because B still has the record. A tombstone makes deletion survive a merge.</p>
+<p><strong>Message:</strong> <code>id</code>, <code>chatId</code>, <code>role</code>, <code>content</code>, <code>createdAt</code>, plus optional <code>reasoning</code>, <code>stopped</code>, <code>error</code> and <code>tokensPerSecond</code>.</p>
+<p><code>stopped</code> and <code>error</code> are stored on the message rather than inferred, so a half-generated answer still looks half-generated after a reload instead of looking like the model's considered final word.</p>
+<h3 id="merge-strategy">Merge strategy</h3>
+<p>Union by <code>id</code>, last-write-wins by <code>updatedAt</code>.</p>
+<p>This is chosen for being predictable and dependency-free, not for being sophisticated. It has a known consequence: editing the same chat on two computers without syncing in between loses the older edit. A CRDT would fix that and would also add far more machinery than a pendrive chat log justifies.</p>
+<h3 id="sidecar-security">Sidecar security</h3>
+<p>Each item exists because the sidecar is an HTTP server running with the user's privileges.</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Control</th>
+<th>Behaviour</th>
+</tr></thead><tbody>
+<tr><td>Binding</td><td><code>127.0.0.1</code> only</td></tr>
+<tr><td>DNS-rebinding guard</td><td>A loopback <code>Host</code> header is required, else HTTP 421</td></tr>
+<tr><td>Origin check</td><td>If an <code>Origin</code> header is present it must exactly match the llama-server origin, else HTTP 403</td></tr>
+<tr><td>Path handling</td><td>Only fixed routes exist, so <strong>no request-supplied path ever reaches the filesystem</strong></td></tr>
+<tr><td>Body size</td><td>Capped at 32 MB</td></tr>
+<tr><td>Write durability</td><td>Atomic: temp file plus rename</td></tr>
+<tr><td>Input validation</td><td>Invalid JSON is rejected with HTTP 400, so the stored file cannot be corrupted</td></tr>
+<tr><td>Unknown routes</td><td>HTTP 404</td></tr>
+</tbody></table></div>
+<p>All of these are unit-tested, including a real round-trip to disk, a foreign origin being rejected, a non-loopback <code>Host</code> being rejected, an oversized body being rejected, CORS preflight, and the assertion that an atomic write leaves no temp file behind.</p>
+<p><strong>No chat data is ever sent to any external server.</strong></p>
+<hr>
+<h2 id="9-security-model">9. Security model</h2>
+<p>The threat model is narrow and worth being explicit about: PendriveAI runs untrusted *model output* inside a browser page, on a machine the user controls, with no network exposure. It does not attempt to defend against a hostile local user or a compromised host.</p>
+<h3 id="network-exposure">Network exposure</h3>
+<ul>
+<li><code>llama-server</code> binds <code>127.0.0.1</code>, never <code>0.0.0.0</code>. <strong>This is not configurable.</strong> The model is not reachable from the local network.</li>
+<li><code>--cors-origins localhost</code> instead of llama.cpp's default <code>*</code>.</li>
+<li>The sidecar binds <code>127.0.0.1</code> with the <code>Host</code> and <code>Origin</code> checks in section 8.</li>
+<li>A Content-Security-Policy meta tag restricts <code>connect-src</code> to <code>'self'</code> plus loopback, so the page cannot reach a remote host even if some code tried.</li>
+<li>No cloud APIs. No OpenAI API, no Anthropic API. No telemetry. No update check. No internet access needed after the drive is prepared.</li>
+</ul>
+<h3 id="command-injection">Command injection</h3>
+<p>Arguments reach <code>llama-server</code> as an <strong>argv array</strong> through <code>std::process::Command</code>. No shell is invoked, and no command string is ever concatenated. A path containing a space, a quote, <code>&amp;</code>, <code>;</code> or <code>$(...)</code> therefore cannot become code, it just becomes one argument.</p>
+<p>This matters more than usual here, because the project root comes from a mount point chosen by the operating system and by whoever named the drive. There is a unit test asserting that spaces and shell metacharacters survive as single arguments.</p>
+<h3 id="browser-side-injection">Browser-side injection</h3>
+<p>Markdown and code-block rendering are hand-written into React elements. Nothing is ever assigned to <code>innerHTML</code>. Model output is therefore rendered as text structure, never as markup, so a model that emits <code>&lt;script&gt;</code> produces visible characters and not an execution.</p>
+<h3 id="url-handling">URL handling</h3>
+<p>The launcher refuses to open any URL that is not <code>http://127.0.0.1:&lt;port&gt;</code> or <code>http://localhost:&lt;port&gt;</code>. Loopback-only addressing is unit-tested.</p>
+<h3 id="process-containment">Process containment</h3>
+<ul>
+<li>Linux: the child receives <code>PR_SET_PDEATHSIG</code>, so <code>llama-server</code> cannot outlive the launcher even if the launcher is killed.</li>
+<li>Shutdown sends SIGTERM, then escalates to a kill after a grace period.</li>
+<li>Windows: <code>TerminateProcess</code>, so <strong>Windows shutdown is not graceful</strong>.</li>
+</ul>
+<h3 id="what-is-deliberately-not-protected">What is deliberately not protected</h3>
+<p>Anything running as your user on the same computer can reach a loopback port. PendriveAI adds <strong>no authentication</strong>, because putting a shared secret into a page served from the same origin buys very little: whatever can read the port can usually read the page too.</p>
+<p><strong>Do not run PendriveAI on a shared or multi-user machine you do not trust.</strong> That is the honest boundary of this design.</p>
+<hr>
+<h2 id="10-packaging-strategy">10. Packaging strategy</h2>
+<p>Packaging turns a repository into a drive that works, and most of its real work is compensating for filesystem limits.</p>
+<h3 id="preparing-the-drive-filesystem-choice-and-formatting">Preparing the drive: filesystem choice and formatting</h3>
+<p>Packaging cannot compensate for the wrong filesystem, so the filesystem is part of the architecture rather than a deployment detail. This subsection is the full version of the procedure; the shorter operator-facing version is <a href="PENDRIVE.html#format-the-pendrive-first-do-this-before-anything-else">Format the pendrive first</a>.</p>
+<h4 id="why-the-filesystem-is-an-architectural-decision">Why the filesystem is an architectural decision</h4>
+<p>Three properties of the target filesystem propagate directly into the design:</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Property</th>
+<th>Consequence for PendriveAI</th>
+</tr></thead><tbody>
+<tr><td>Can a native binary be executed from the mount?</td><td>Decides whether <code>./StartAI</code> works, or whether the <code>StartAI.sh</code> staging bootstrap is mandatory on Linux</td></tr>
+<tr><td>Maximum single-file size</td><td>Decides which model quantisations can be carried at all</td></tr>
+<tr><td>Symlink support</td><td>Decides whether the llama.cpp library symlinks must be dereferenced at packaging time</td></tr>
+</tbody></table></div>
+<p>The first two vary by filesystem. The third does not: <strong>no FAT-family filesystem supports symlinks</strong>, so the dereferencing step described later in this section is unconditional.</p>
+<h4 id="measured-evidence">Measured evidence</h4>
+<p>The test drive arrived as FAT32 mounted with the <code>showexec</code> option. On it:</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Test</th>
+<th>Result</th>
+</tr></thead><tbody>
+<tr><td>Execute a compiled Linux ELF (<code>./binary</code>)</td><td>"Permission denied". <code>chmod +x</code> had no effect</td></tr>
+<tr><td>Create a symlink</td><td>"Operation not permitted"</td></tr>
+<tr><td>Create a hard link</td><td>"Operation not permitted"</td></tr>
+<tr><td>Case sensitivity</td><td>Case-insensitive</td></tr>
+<tr><td>Write speed</td><td>3.4 MB/s</td></tr>
+</tbody></table></div>
+<p>Under <code>showexec</code>, only files named <code>.exe</code>, <code>.com</code> or <code>.bat</code> receive an execute bit. A Linux ELF named <code>StartAI</code> can therefore never be executed from such a mount, no matter what permissions are set on it. FAT32 additionally caps any single file at 4 GiB.</p>
+<h4 id="filesystem-comparison">Filesystem comparison</h4>
+<p><strong>exFAT is the recommended format.</strong> It allows direct execution on Linux, it has no practical file-size cap, and it is readable on Windows, macOS and Linux.</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Filesystem</th>
+<th>Linux execution</th>
+<th>Max file size</th>
+<th>Cross-platform</th>
+<th>Verdict</th>
+</tr></thead><tbody>
+<tr><td><strong>exFAT</strong></td><td>Yes</td><td>No practical cap</td><td>Windows, macOS, Linux</td><td><strong>Recommended</strong></td></tr>
+<tr><td>FAT32</td><td>No, under <code>showexec</code></td><td>4 GiB</td><td>Windows, macOS, Linux</td><td>Works with the <code>StartAI.sh</code> fallback</td></tr>
+<tr><td>NTFS</td><td>Possible</td><td>Very large</td><td>Poor in practice</td><td>Rejected: Linux write support exists, but permissions and safe-eject behaviour are worse</td></tr>
+<tr><td>ext4</td><td>Yes</td><td>Very large</td><td>Linux only</td><td>Rejected: unreadable on stock Windows</td></tr>
+</tbody></table></div>
+<p>NTFS and ext4 each fail the single requirement that matters most for a pendrive, which is that the same drive must work on an arbitrary machine the user did not prepare.</p>
+<h4 id="warning">Warning</h4>
+<blockquote>
+<p><strong>Formatting ERASES EVERYTHING on the drive.</strong> Back up first. The correct device must be identified before any format command is typed. Getting it wrong destroys the wrong disk, and there is no undo.</p>
+</blockquote>
+<h4 id="linux-command-line">Linux, command line</h4>
+<p><strong>Step 1. Identify the device.</strong></p>
+<pre><code class="lang-bash">lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINT,MODEL,TRAN,RM</code></pre>
+<p>Look for <code>TRAN</code> of <code>usb</code>, <code>RM</code> of <code>1</code> (removable), and a <code>SIZE</code> matching the pendrive. <strong>Never pick the disk that holds <code>/</code> or <code>/boot</code></strong>; check <code>MOUNTPOINT</code> first. The whole device looks like <code>/dev/sdb</code>, and the partition on it looks like <code>/dev/sdb1</code>. Every command below uses <code>/dev/sdX1</code> as a placeholder rather than a real device name, deliberately, so that nothing here can be copied and pasted into a destructive mistake.</p>
+<p><strong>Step 2. Install the exFAT tools.</strong></p>
+<pre><code class="lang-bash">sudo apt install exfatprogs        # Debian, Ubuntu
+sudo dnf install exfatprogs        # Fedora
+sudo pacman -S exfatprogs          # Arch</code></pre>
+<p><strong>Step 3. Unmount the partition.</strong></p>
+<pre><code class="lang-bash">udisksctl unmount -b /dev/sdX1
+# or
+sudo umount /dev/sdX1</code></pre>
+<p><strong>Step 4. Format as exFAT with the label <code>PENDRIVEAI</code>.</strong></p>
+<pre><code class="lang-bash">sudo mkfs.exfat -n PENDRIVEAI /dev/sdX1</code></pre>
+<p><strong>Step 5. Mount it again.</strong></p>
+<p>Unplug and replug, or mount explicitly:</p>
+<pre><code class="lang-bash">udisksctl mount -b /dev/sdX1</code></pre>
+<p>It appears at something like <code>/media/&lt;user&gt;/PENDRIVEAI</code> or <code>/run/media/&lt;user&gt;/PENDRIVEAI</code>. <strong>The launcher does not care what that path is</strong>, which is the entire point of the root-discovery design in section 3. Spaces in the path are fine and are covered by a unit test.</p>
+<p><strong>Step 6, only if needed. Create a partition table.</strong></p>
+<p>Only when the drive has no partition table at all, or a broken one:</p>
+<pre><code class="lang-bash">sudo parted /dev/sdX -- mklabel msdos mkpart primary 1MiB 100%</code></pre>
+<p>Note that this operates on the whole device (<code>/dev/sdX</code>), not on a partition. Then format the newly created <code>/dev/sdX1</code> with Step 4.</p>
+<p><strong>Step 7. Verify.</strong></p>
+<pre><code class="lang-bash">lsblk -f</code></pre>
+<p>The partition should report <code>exfat</code> with the label <code>PENDRIVEAI</code>.</p>
+<h4 id="linux-gui-alternative">Linux, GUI alternative</h4>
+<p>GNOME Disks (<code>gnome-disks</code>): pick the USB device in the left-hand list, confirming size and model, use the menu to <strong>Format Partition</strong>, choose <strong>Other</strong> and then <strong>exFAT</strong>, and set the name to <code>PENDRIVEAI</code>.</p>
+<p>GParted also works, but it may need the <code>exfatprogs</code> package installed before exFAT appears as an option.</p>
+<h4 id="windows-file-explorer">Windows, File Explorer</h4>
+<ol>
+<li>Open <strong>This PC</strong>, right-click the USB drive, choose <strong>Format</strong>.</li>
+<li><strong>File system:</strong> exFAT. <strong>Allocation unit size:</strong> default. <strong>Volume label:</strong> <code>PENDRIVEAI</code>. Leave <strong>Quick Format</strong> checked.</li>
+<li>Click <strong>Start</strong> and confirm. This erases the drive, so confirm the drive letter in the dialog belongs to the pendrive.</li>
+</ol>
+<h4 id="windows-powershell-alternative">Windows, PowerShell alternative</h4>
+<p>Run as Administrator. Identify the disk first:</p>
+<pre><code class="lang-powershell">Get-Disk
+Get-Partition -DiskNumber &lt;n&gt;</code></pre>
+<p>Verify the disk number and the size before continuing. Then format, replacing <code>E</code> with the real drive letter:</p>
+<pre><code class="lang-powershell">Format-Volume -DriveLetter E -FileSystem exFAT -NewFileSystemLabel PENDRIVEAI</code></pre>
+<p><code>diskpart</code> can also do this, but <code>Format-Volume</code> is preferred here because it acts on a volume already identified by letter rather than on a selected disk, which removes one whole class of mistake.</p>
+<h4 id="macos">macOS</h4>
+<p>Disk Utility: select the <strong>USB device</strong>, not just the volume underneath it, click <strong>Erase</strong>, set <strong>Format</strong> to <strong>ExFAT</strong> and <strong>Scheme</strong> to <strong>Master Boot Record</strong>, and name it <code>PENDRIVEAI</code>.</p>
+<p>macOS appears here only as a machine that can prepare a drive. <strong>PendriveAI v1 ships no macOS runtime</strong>, and the memory probe returns unknown on macOS.</p>
+<h4 id="staying-on-fat32">Staying on FAT32</h4>
+<p>FAT32 remains supported, with two consequences that follow from the measurements above.</p>
+<p><strong>Linux must use the staging bootstrap.</strong></p>
+<pre><code class="lang-bash">sh StartAI.sh        # instead of ./StartAI</code></pre>
+<p><code>StartAI.sh</code> copies the launcher and the llama.cpp runtime into a local temporary directory where execution is permitted, marks them executable, and sets <code>PENDRIVEAI_ROOT</code> back to the pendrive so the model, the web assets and the config are still read from the drive. Roughly 45 MB is copied to local disk on first run, and the 2.50 GB model is never copied. <strong>This bootstrap has not been tested end to end.</strong></p>
+<p><strong>Windows is unaffected on FAT32</strong>, because <code>.exe</code> executes normally there.</p>
+<p><strong>The 4 GiB cap constrains the model.</strong> Q4_K_M at 2.50 GB fits FAT32 comfortably, which is one of the reasons it was chosen. Q8_0 at 4.28 GB cannot be stored on FAT32 at all and requires exFAT.</p>
+<h3 id="scripts">Scripts</h3>
+<div class="tablewrap"><table><thead><tr>
+<th>Script</th>
+<th>Job</th>
+</tr></thead><tbody>
+<tr><td><code>scripts/fetch-runtime.sh</code></td><td>Download and trim the llama.cpp Linux release</td></tr>
+<tr><td><code>scripts/fetch-runtime.ps1</code></td><td>Download and trim the llama.cpp Windows release</td></tr>
+<tr><td><code>scripts/build-linux.sh</code></td><td>Build <code>StartAI</code> and stage the Linux runtime plus web build</td></tr>
+<tr><td><code>scripts/build-windows.ps1</code></td><td>Assemble the Windows release folder</td></tr>
+<tr><td><code>scripts/package.sh</code></td><td>Produce the final <code>release/</code> tree</td></tr>
+</tbody></table></div>
+<p>Build caches are redirected off the drive with <code>CARGO_TARGET_DIR</code>.</p>
+<h3 id="trimming">Trimming</h3>
+<p>The extracted llama.cpp builds are 41 MB (Linux) and 46 MB (Windows), and most of that is tools we never launch. Only <code>llama-server</code> and the libraries it actually loads are kept, which brings each platform folder to roughly 40 to 45 MB.</p>
+<h3 id="symlink-flattening-the-non-obvious-step">Symlink flattening, the non-obvious step</h3>
+<p>The llama.cpp archives contain symlinks such as:</p>
+<pre><code>libggml-base.so -&gt; libggml-base.so.0.20.2</code></pre>
+<p><strong>Neither FAT32 nor exFAT can store a symlink.</strong> This was measured on the real drive: symlink creation returns "Operation not permitted", and so does hard-link creation.</p>
+<p>So the packaging script replaces each symlink with a <strong>real file named after the SONAME the binary actually loads</strong>. Copy the tree naively and the runtime will fail to start from the drive with a confusing missing-library error, because the loader is looking for a name that is now absent.</p>
+<h3 id="what-never-goes-on-the-drive-and-what-never-goes-in-git">What never goes on the drive, and what never goes in git</h3>
+<p><code>.gitignore</code> excludes <code>*.gguf</code>, <code>runtime/</code>, <code>release/</code>, <code>web/dist/</code>, <code>web/node_modules/</code>, <code>launcher/target/</code>, <code>data/</code> and <code>config/config.json</code>. The multi-gigabyte model is <strong>never committed</strong>.</p>
+<p><code>npm install</code> must <strong>never be run on the drive</strong>. It needs about 30,000 small files and it needs symlinks, which the drive cannot store, at 3.4 MB/s. All build caches belong on local disk.</p>
+<h3 id="case-insensitivity">Case insensitivity</h3>
+<p>The test drive is case-insensitive. <code>StartAI</code> and <code>startai</code> are the same name there, so no two shipped files may differ only in case.</p>
+<h3 id="release-layout">Release layout</h3>
+<pre><code>PendriveAI/
+├── StartAI                  Linux launcher (native ELF)
+├── StartAI.sh               Linux bootstrap for FAT32 / noexec mounts (sh StartAI.sh)
+├── StartAI.exe              Windows launcher (build on Windows; not built here)
+├── StartAI.bat              Windows zero-compile fallback launcher
+├── .pendriveai-root         root marker used for path discovery
+├── runtime/
+│   ├── linux/               llama-server + trimmed .so set
+│   └── windows/             llama-server.exe + trimmed .dll set
+├── models/
+│   ├── model.gguf           the GGUF (not in git; downloaded separately)
+│   └── README.md
+├── web/                     Vite production build (index.html + assets/)
+├── config/
+│   └── config.json
+├── data/
+│   ├── chats/               portable chat history (chats.json)
+│   └── logs/                rotating logs
+└── README.md</code></pre>
+<p><code>.pendriveai-root</code> is a zero-content marker whose only job is to make root discovery deterministic (section 3). Deleting it forces the slower structural detection path.</p>
+<hr>
+<h2 id="11-the-8-gb-storage-budget">11. The 8 GB storage budget</h2>
+<div class="tablewrap"><table><thead><tr>
+<th>Item</th>
+<th>Size</th>
+</tr></thead><tbody>
+<tr><td>Model (<code>Qwen3-4B-Instruct-2507-Q4_K_M.gguf</code>)</td><td>2.50 GB</td></tr>
+<tr><td>Linux runtime (trimmed)</td><td>about 40 MB</td></tr>
+<tr><td>Windows runtime (trimmed)</td><td>about 45 MB</td></tr>
+<tr><td>Web production build</td><td>under 1 MB</td></tr>
+<tr><td>Launcher binaries</td><td>about 1 MB</td></tr>
+<tr><td>Config, docs and logs</td><td>well under 5 MB</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>about 2.6 GB</strong></td></tr>
+</tbody></table></div>
+<p>An 8 GB pendrive gives roughly 7.3 GB usable, so about <strong>4.7 GB stays free</strong> for chat data and future updates.</p>
+<p>Two constraints shaped the model choice as much as quality did:</p>
+<ul>
+<li><strong>The FAT32 4 GiB per-file limit.</strong> Q4_K_M at 2.50 GB clears it comfortably. Q8_0 at 4.28 GB does not, and would require exFAT.</li>
+<li><strong>Headroom.</strong> Filling a drive to 95 percent leaves nowhere for logs, chat history or a second model later.</li>
+</ul>
+<p>Log growth is bounded by design rather than by hope: rotation is size-based at 2 MiB per file with 3 generations kept, across three files, so logs cannot silently consume the free space.</p>
+<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+reads as plain markdown in the repository under <code>docs/</code>.</p>
+</article>
+</div>
+</body>
+</html>

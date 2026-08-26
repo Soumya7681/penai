@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 132" width="620" height="132" role="img" aria-label="PendriveAI - a local model on a stick">
+  <title>PendriveAI</title>
+  <g transform="translate(6 22) scale(1.3)">
+    <rect x="5" y="18" width="38" height="28" rx="8" fill="none" stroke="#0e7c8c" stroke-width="3"/>
+    <path d="M43 26h13a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H43z" fill="none" stroke="#0e7c8c" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M47 30.5h7M47 35.5h7" stroke="#0e7c8c" stroke-width="2" stroke-linecap="round" opacity="0.55"/>
+    <circle cx="17" cy="32" r="8" fill="#1f9d6b" opacity="0.16"/>
+    <circle cx="17" cy="32" r="4.5" fill="#1f9d6b"/>
+  </g>
+
+  <!-- Monospace on purpose: everything the product shows you is a machine
+       reading, and the wordmark is written in the same voice. -->
+  <text x="104" y="67"
+        font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace"
+        font-size="38" font-weight="700" letter-spacing="1.5" fill="#101519">Pendrive<tspan fill="#0e7c8c">AI</tspan></text>
+
+  <text x="106" y="94"
+        font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace"
+        font-size="12.5" font-weight="600" letter-spacing="3.4" fill="#7c8794">LOCAL MODEL &#183; NO NETWORK &#183; NO ACCOUNT</text>
+</svg>

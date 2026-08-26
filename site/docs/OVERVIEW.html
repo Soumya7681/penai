@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview - PendriveAI docs</title>
+<meta name="description" content="Overview
+What PendriveAI is, how the pieces fit together, and what it can do.">
+<link rel="icon" href="../assets/mark.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Docs</a>
+      <a class="btn btn-ghost" href="https://github.com/">Source</a>
+    </nav>
+  </div>
+</header>
+<div class="docs">
+<nav class="docnav">
+<a href="index.html">All documentation</a>
+<span class="kicker">Start here</span>
+<a href="STATUS.html">Status</a>
+<a href="OVERVIEW.html" class="current">Overview</a>
+<a href="REQUIREMENTS.html">Requirements</a>
+<span class="kicker">Build a drive</span>
+<a href="MODELS.html">Model setup</a>
+<a href="PENDRIVE.html">Preparing the pendrive</a>
+<a href="BUILD.html">Building a release</a>
+<a href="DEVELOPMENT.html">Development setup</a>
+<span class="kicker">Live with it</span>
+<a href="USAGE.html">Running PendriveAI</a>
+<a href="TROUBLESHOOTING.html">Troubleshooting</a>
+<a href="LIMITATIONS.html">Known limitations</a>
+<a href="PRIVACY.html">Privacy and security</a>
+<span class="kicker">Deeper</span>
+<a href="ARCHITECTURE.html">Architecture</a>
+<a href="TESTING.html">Testing</a>
+</nav>
+<article class="doc">
+<h1>Overview</h1>
+<p>What PendriveAI is, how the pieces fit together, and what it can do.</p>
+<hr>
+<h2 id="what-pendriveai-is">What PendriveAI is</h2>
+<p>PendriveAI is a self-contained AI chat system that lives on a USB pendrive. There is no desktop application and no installer. The drive carries three things:</p>
+<ol>
+<li>A CPU build of <strong>llama.cpp</strong> (the <code>llama-server</code> HTTP server).</li>
+<li>One <strong>GGUF model file</strong>.</li>
+<li>A <strong>React production build</strong> plus a small native <strong>launcher</strong>.</li>
+</ol>
+<p>The launcher starts <code>llama-server</code> bound to <code>127.0.0.1</code>, points it at the model and at the web build, waits until the engine reports healthy, and opens your default browser. From that point on it behaves like a website that happens to be served from your pocket: the page and the AI API are on the same local port.</p>
+<p>Nothing leaves the machine. There is no account, no telemetry and no network dependency once the drive has been prepared.</p>
+<h2 id="how-it-works">How it works</h2>
+<pre><code>Plug in pendrive
+      |
+      v
+Run the launcher  (StartAI / sh StartAI.sh / StartAI.exe / StartAI.bat)
+      |
+      v
+Launcher probes hardware, finds the model, picks a free loopback port
+      |
+      v
+llama-server starts on 127.0.0.1:&lt;PORT&gt;
+      |     serves the React UI at /   (via --path)
+      |     serves the OpenAI-compatible API at /v1/...
+      v
+Launcher polls /v1/health until it returns 200
+      |
+      v
+Default browser opens http://127.0.0.1:&lt;PORT&gt;
+      |
+      v
+Offline AI chat</code></pre>
+<p>The single most important design consequence: <strong>one process serves both the UI and the API on one port</strong>. Same origin, so there is no CORS problem, no second static file server, and no Node.js runtime on the target computer.</p>
+<h2 id="features">Features</h2>
+<p><strong>Chat</strong></p>
+<ul>
+<li>New chat, send, streaming token-by-token responses.</li>
+<li>Stop generation mid-stream.</li>
+<li>Markdown rendering and fenced code blocks with a copy button.</li>
+<li>Auto-scroll, explicit loading states and explicit error states.</li>
+<li>Sidebar chat history with rename and delete.</li>
+</ul>
+<p><strong>Reasoning models</strong></p>
+<ul>
+<li>Qwen3 *thinking* variants send <code>choices[0].delta.reasoning_content</code> alongside the normal content deltas. The UI renders that in a separate collapsible block. The model shipped in v1 is the non-thinking Instruct variant, so this path is mostly dormant by default.</li>
+</ul>
+<p><strong>Settings</strong></p>
+<ul>
+<li>Temperature, top-p and maximum output tokens, stored in browser <code>localStorage</code>.</li>
+<li>Context size and CPU thread count are shown <strong>read-only</strong>. Both are fixed by the launcher before the server starts, so the UI reports them rather than pretending it can change them live.</li>
+</ul>
+<p><strong>Status</strong></p>
+<ul>
+<li>An indicator shows "Offline Mode" and "AI Engine: Connected / Starting / Disconnected".</li>
+</ul>
+<p><strong>Launcher</strong></p>
+<ul>
+<li>Automatic hardware probe, automatic thread selection, automatic port selection.</li>
+<li>A RAM gate that reduces context or refuses to start rather than thrashing.</li>
+<li>Rotating logs, single-instance guard, clean shutdown on Ctrl+C.</li>
+<li>Optional portable chat-history sidecar so chats travel with the drive.</li>
+</ul>
+<p><strong>Deliberately not included:</strong> syntax highlighting, client-side routing, GPU acceleration, authentication, more than one model. See <a href="LIMITATIONS.html">Known limitations</a>.</p>
+<h2 id="architecture">Architecture</h2>
+<pre><code>                    Browser (default browser on the host)
+                    http://127.0.0.1:&lt;PORT&gt;
+                              |
+              +---------------+----------------+
+              |                                |
+        GET /  and /assets/*            POST /v1/chat/completions
+        (React build, served by         GET /v1/health, /props, /slots
+         llama-server --path)           (OpenAI-compatible API)
+              |                                |
+              +---------------+----------------+
+                              |
+                   llama-server (llama.cpp b10549)
+                   bound to 127.0.0.1 only
+                              |
+                    models/model.gguf (Q4_K_M)
+                              ^
+                              |
+                    StartAI launcher (Rust, std only)
+                    spawns and supervises the child,
+                    writes web/runtime-config.json,
+                    opens the browser
+                              |
+                    Optional storage sidecar
+                    127.0.0.1:47611 -&gt; data/chats/chats.json</code></pre>
+<p>Components:</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Component</th>
+<th>Technology</th>
+<th>Notes</th>
+</tr></thead><tbody>
+<tr><td>AI runtime</td><td>llama.cpp, prebuilt release <code>b10549</code></td><td>CPU only, 15 bundled CPU-feature variants</td></tr>
+<tr><td>Launcher</td><td>Rust, edition 2021, <strong>zero external crates</strong></td><td><code>opt-level = "s"</code>, LTO, one codegen unit, stripped</td></tr>
+<tr><td>Web UI</td><td>React 18 + TypeScript, Vite 6</td><td>Runtime deps are only <code>react</code> and <code>react-dom</code></td></tr>
+<tr><td>Model</td><td>Qwen3-4B-Instruct-2507, Q4_K_M GGUF</td><td>Apache-2.0</td></tr>
+<tr><td>Chat storage</td><td>IndexedDB, plus an optional portable JSON sidecar</td><td>See <a href="PRIVACY.html">Privacy</a></td></tr>
+</tbody></table></div>
+<p>The launcher's own modules are <code>main.rs</code>, <code>paths.rs</code>, <code>config.rs</code>, <code>sysinfo.rs</code>, <code>net.rs</code>, <code>child.rs</code>, <code>logging.rs</code>, <code>json.rs</code>, <code>lock.rs</code>, <code>store.rs</code>, <code>browser.rs</code> and <code>signals.rs</code>.</p>
+<p>The deeper design rationale, including why llama.cpp's <code>--path</code> was chosen over shipping a separate static server, is in <a href="ARCHITECTURE.html">Architecture</a>.</p>
+<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+reads as plain markdown in the repository under <code>docs/</code>.</p>
+</article>
+</div>
+</body>
+</html>

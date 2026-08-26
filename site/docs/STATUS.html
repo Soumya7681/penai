@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status - PendriveAI docs</title>
+<meta name="description" content="Status
+What is verified, what is built but untested, and what is not built at all.">
+<link rel="icon" href="../assets/mark.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Docs</a>
+      <a class="btn btn-ghost" href="https://github.com/">Source</a>
+    </nav>
+  </div>
+</header>
+<div class="docs">
+<nav class="docnav">
+<a href="index.html">All documentation</a>
+<span class="kicker">Start here</span>
+<a href="STATUS.html" class="current">Status</a>
+<a href="OVERVIEW.html">Overview</a>
+<a href="REQUIREMENTS.html">Requirements</a>
+<span class="kicker">Build a drive</span>
+<a href="MODELS.html">Model setup</a>
+<a href="PENDRIVE.html">Preparing the pendrive</a>
+<a href="BUILD.html">Building a release</a>
+<a href="DEVELOPMENT.html">Development setup</a>
+<span class="kicker">Live with it</span>
+<a href="USAGE.html">Running PendriveAI</a>
+<a href="TROUBLESHOOTING.html">Troubleshooting</a>
+<a href="LIMITATIONS.html">Known limitations</a>
+<a href="PRIVACY.html">Privacy and security</a>
+<span class="kicker">Deeper</span>
+<a href="ARCHITECTURE.html">Architecture</a>
+<a href="TESTING.html">Testing</a>
+</nav>
+<article class="doc">
+<h1>Status</h1>
+<p>What is verified, what is built but untested, and what is not built at all.</p>
+<hr>
+<p>Read this before you judge anything below as "done".</p>
+<p><strong>Verified working (built, run and measured on Linux x86_64):</strong></p>
+<ul>
+<li>llama.cpp release <code>b10549</code> starting with the real Qwen3-4B-Instruct-2507-Q4_K_M model.</li>
+<li><code>/v1/health</code> reaching HTTP 200 after 6 seconds on the development machine.</li>
+<li><code>llama-server --path &lt;dir&gt;</code> serving the React production build at <code>/</code>.</li>
+<li>Real Server-Sent Events streaming with token deltas and a <code>data: [DONE]</code> terminator.</li>
+<li>Client-side abort (stop generation) leaving the server healthy and the slot freed.</li>
+<li>Measured 13.2 tokens/second generation and 50.3 tokens/second prompt processing.</li>
+<li>The Rust launcher: 85 unit tests pass with <code>cargo test</code>.</li>
+<li>Real pendrive filesystem behaviour under FAT32 with the <code>showexec</code> mount option.</li>
+</ul>
+<p><strong>Cross-built but not run:</strong></p>
+<ul>
+<li><code>StartAI.exe</code>. mingw-w64 (<code>x86_64-w64-mingw32-gcc</code> 13-win32) and the Rust <code>x86_64-pc-windows-gnu</code> target are installed on the build machine, so <code>build-all.sh</code> produces the real launcher rather than falling back to <code>StartAI.bat</code>. Nothing has executed it on Windows yet. See <a href="BUILD.html#building-the-windows-release">Building the Windows release</a>.</li>
+</ul>
+<p><strong>Not tested:</strong></p>
+<ul>
+<li>Windows end to end, and <code>StartAI.bat</code>.</li>
+<li>macOS (no runtime is shipped for it in v1).</li>
+<li>The <code>StartAI.sh</code> FAT32 staging bootstrap end to end.</li>
+<li>GPU builds, any ARM platform, long multi-hour sessions, concurrent multi-user access.</li>
+</ul>
+<p>Full detail is in <a href="TESTING.html">Testing</a>.</p>
+<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+reads as plain markdown in the repository under <code>docs/</code>.</p>
+</article>
+</div>
+</body>
+</html>

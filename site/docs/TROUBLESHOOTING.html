@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Troubleshooting - PendriveAI docs</title>
+<meta name="description" content="Troubleshooting
+Symptoms, causes and fixes, including findings from the real test drive.">
+<link rel="icon" href="../assets/mark.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Docs</a>
+      <a class="btn btn-ghost" href="https://github.com/">Source</a>
+    </nav>
+  </div>
+</header>
+<div class="docs">
+<nav class="docnav">
+<a href="index.html">All documentation</a>
+<span class="kicker">Start here</span>
+<a href="STATUS.html">Status</a>
+<a href="OVERVIEW.html">Overview</a>
+<a href="REQUIREMENTS.html">Requirements</a>
+<span class="kicker">Build a drive</span>
+<a href="MODELS.html">Model setup</a>
+<a href="PENDRIVE.html">Preparing the pendrive</a>
+<a href="BUILD.html">Building a release</a>
+<a href="DEVELOPMENT.html">Development setup</a>
+<span class="kicker">Live with it</span>
+<a href="USAGE.html">Running PendriveAI</a>
+<a href="TROUBLESHOOTING.html" class="current">Troubleshooting</a>
+<a href="LIMITATIONS.html">Known limitations</a>
+<a href="PRIVACY.html">Privacy and security</a>
+<span class="kicker">Deeper</span>
+<a href="ARCHITECTURE.html">Architecture</a>
+<a href="TESTING.html">Testing</a>
+</nav>
+<article class="doc">
+<h1>Troubleshooting</h1>
+<p>Symptoms, causes and fixes, including findings from the real test drive.</p>
+<hr>
+<p><strong>The browser did not open.</strong> The launcher prints the URL. Open it yourself: <code>http://127.0.0.1:8080</code> or whichever port was printed. <code>--no-browser</code> suppresses opening by design.</p>
+<p><strong>Port 8080 is busy.</strong> This is handled automatically: 8081 to 8180 are scanned, then an ephemeral port is requested. Use <code>--port &lt;n&gt;</code> to pin a specific one.</p>
+<p><strong>"model file not found".</strong> Run the download script in <code>models/</code>. The launcher looks for <code>models/model.gguf</code>, then any single <code>.gguf</code> in <code>models/</code>, then <code>model.file</code> in the config.</p>
+<p><strong>"model file looks truncated".</strong> The download was interrupted. Re-download and verify the SHA-256 against <code>3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597</code>. The correct size is exactly 2,497,281,120 bytes.</p>
+<p><strong>"Permission denied" when running <code>./StartAI</code> on Linux.</strong> The drive is FAT32 mounted with <code>showexec</code>, under which only <code>.exe</code>, <code>.com</code> and <code>.bat</code> names get an execute bit. <code>chmod +x</code> has no effect. Two fixes:</p>
+<pre><code class="lang-bash">sh StartAI.sh        # immediate workaround</code></pre>
+<p>or reformat the drive to exFAT (see <a href="PENDRIVE.html">Preparing the pendrive</a>). This was measured on the real test drive, not assumed. See the filesystem notes below.</p>
+<p><strong>glibc too old.</strong> The prebuilt Linux binaries need glibc 2.34 or newer. Ubuntu 22.04+, Debian 12+ or Fedora 35+. There is no workaround short of a newer distribution or building llama.cpp yourself.</p>
+<p><strong>"engine failed to start".</strong> Read <code>data/logs/llama-server.stderr.log</code>. That file has the engine's own error message, which is almost always more specific than the launcher's.</p>
+<p><strong>Out of memory.</strong> Close other applications, then try <code>--ctx 2048</code>, then a smaller quantisation (Q3_K_M or Q2_K, see <code>models/README.md</code>).</p>
+<p><strong>My chats are missing on another computer.</strong> Expected. IndexedDB is per browser profile per machine. Enable the portable storage sidecar so history is written to <code>data/chats/chats.json</code> on the drive. See <a href="PRIVACY.html">Privacy</a>.</p>
+<p><strong>Generation is slow.</strong> Expected on CPU. The development machine measured 13.2 tokens/second. A weaker CPU will be slower. Reducing context does not make generation faster; it only reduces memory use.</p>
+<p><strong>"already running".</strong> The single-instance guard holds a bound loopback socket on port 47610 as its mutex, rather than a lock file, because the OS releases a socket even after a crash or an unplug. It writes <code>data/run/instance.json</code> with the live URL, so a second launch just reopens the browser at the session already running.</p>
+<h2 id="filesystem-findings-on-the-actual-test-drive">Filesystem findings on the actual test drive</h2>
+<p>The test pendrive arrived as FAT32, mounted with the <code>showexec</code> option. These were measured on it, not inferred:</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Test</th>
+<th>Result</th>
+</tr></thead><tbody>
+<tr><td>Execute a compiled Linux ELF (<code>./binary</code>)</td><td>"Permission denied". <code>chmod +x</code> had no effect</td></tr>
+<tr><td>Create a symlink</td><td>"Operation not permitted"</td></tr>
+<tr><td>Create a hard link</td><td>"Operation not permitted"</td></tr>
+<tr><td>Case sensitivity</td><td>Case-insensitive</td></tr>
+<tr><td>Write speed</td><td>3.4 MB/s</td></tr>
+</tbody></table></div>
+<p>Four consequences follow.</p>
+<ol>
+<li><strong>Linux users cannot run <code>./StartAI</code> directly from a FAT32 drive.</strong> The shipped fix is <code>StartAI.sh</code>, run as <code>sh StartAI.sh</code>, which stages the launcher and runtime into a local temporary directory, marks them executable, and sets <code>PENDRIVEAI_ROOT</code> back to the pendrive. Windows is unaffected, because <code>.exe</code> runs normally on FAT32.</li>
+<li><strong>exFAT is the recommended fix.</strong> It allows direct execution on Linux and removes the 4 GiB per-file limit, while staying readable on Windows and macOS. Commands are in <a href="PENDRIVE.html">Preparing the pendrive</a>. Reformatting erases the drive, so confirm the device with <code>lsblk</code> first.</li>
+<li><strong>Symlinks must be flattened at packaging time.</strong> Neither FAT32 nor exFAT stores symlinks, so the packaging script replaces the llama.cpp symlinks (<code>libggml-base.so -&gt; libggml-base.so.0.20.2</code> and friends) with real files named after the SONAME the binary actually loads.</li>
+<li><strong>Never run <code>npm install</code> on the drive.</strong> It needs about 30,000 small files and symlinks. Build caches belong on local disk.</li>
+</ol>
+<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+reads as plain markdown in the repository under <code>docs/</code>.</p>
+</article>
+</div>
+</body>
+</html>

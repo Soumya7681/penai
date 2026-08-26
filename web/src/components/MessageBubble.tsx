@@ -1,25 +1,59 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { Message } from '../lib/types'
 import { renderMarkdown } from '../lib/markdown'
+import { Icon } from './Icon'
 
 interface Props {
   message: Message
   /** True while this message is the one currently being streamed into. */
   streaming: boolean
+  /** Re-asks the question that produced this reply. Absent while busy. */
   onRetry?: (() => void) | undefined
 }
 
 export function MessageBubble({ message, streaming, onRetry }: Props) {
   const [showReasoning, setShowReasoning] = useState(false)
+  const [copied, setCopied] = useState(false)
   const isUser = message.role === 'user'
 
-  return (
-    <article className={`msg msg-${message.role}`}>
-      <div className="msg-gutter" aria-hidden="true">
-        <span className={`avatar avatar-${message.role}`}>{isUser ? 'You' : 'AI'}</span>
-      </div>
+  const copy = useCallback(() => {
+    void (async () => {
+      try {
+        await navigator.clipboard.writeText(message.content)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1400)
+      } catch {
+        // Clipboard permission can be refused; the text is still selectable.
+      }
+    })()
+  }, [message.content])
 
-      <div className="msg-body">
+  const hasText = message.content.length > 0
+  const showTools = !streaming && hasText && !message.error
+
+  return (
+    <article className={`turn turn-${message.role}`}>
+      {!isUser && (
+        <div className="turn-head">
+          <span className="role">Reply</span>
+          <span className="meta">
+            <time dateTime={new Date(message.createdAt).toISOString()}>
+              {new Date(message.createdAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </time>
+            {message.stopped && <span className="tag tag-warn">stopped</span>}
+            {message.tokensPerSecond !== undefined && (
+              <span className="tag" title="Generation speed reported by llama.cpp">
+                {message.tokensPerSecond.toFixed(1)} tok/s
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
+      <div className="turn-body">
         {message.reasoning && (
           <div className="reasoning">
             <button
@@ -28,7 +62,7 @@ export function MessageBubble({ message, streaming, onRetry }: Props) {
               onClick={() => setShowReasoning((v) => !v)}
               aria-expanded={showReasoning}
             >
-              {showReasoning ? 'Hide reasoning' : 'Show reasoning'}
+              {showReasoning ? 'Hide thinking' : 'Show thinking'}
             </button>
             {showReasoning && <div className="reasoning-body">{message.reasoning}</div>}
           </div>
@@ -36,46 +70,60 @@ export function MessageBubble({ message, streaming, onRetry }: Props) {
 
         {message.error ? (
           <div className="msg-error" role="alert">
-            <strong>Could not get a reply.</strong>
+            <strong>No reply came back.</strong>
             <p>{message.error}</p>
             {onRetry && (
               <button type="button" className="btn btn-ghost btn-small" onClick={onRetry}>
-                Try again
+                <Icon name="refresh" size={14} />
+                Ask again
               </button>
             )}
           </div>
         ) : isUser ? (
-          // User text is rendered verbatim. Running it through the markdown
-          // parser would mangle pasted code and change what the user typed.
-          <div className="msg-plain">{message.content}</div>
+          // User text is shown verbatim. Running it through the markdown parser
+          // would mangle pasted code and change what the user typed.
+          <div className="bubble">{message.content}</div>
         ) : (
-          <div className="msg-markdown">
-            {message.content ? (
+          <div className="md">
+            {hasText ? (
               renderMarkdown(message.content)
             ) : streaming ? (
-              <span className="thinking" aria-label="Generating">
+              <span className="thinking" aria-label="Writing a reply">
                 <span className="tdot" />
                 <span className="tdot" />
                 <span className="tdot" />
               </span>
             ) : (
-              <span className="msg-empty">(empty reply)</span>
+              <span className="msg-empty">The model returned nothing.</span>
             )}
-            {streaming && message.content && <span className="caret" aria-hidden="true" />}
+            {streaming && hasText && <span className="caret" aria-hidden="true" />}
           </div>
         )}
 
-        <footer className="msg-meta">
-          <time dateTime={new Date(message.createdAt).toISOString()}>
-            {new Date(message.createdAt).toLocaleTimeString()}
-          </time>
-          {message.stopped && <span className="tag tag-warn">stopped</span>}
-          {message.tokensPerSecond !== undefined && (
-            <span className="tag" title="Generation speed reported by llama.cpp">
-              {message.tokensPerSecond.toFixed(1)} tok/s
-            </span>
-          )}
-        </footer>
+        {showTools && (
+          <div className={`turn-tools ${copied ? 'turn-tools-open' : ''}`}>
+            <button
+              type="button"
+              className={`icon-btn icon-btn-sm ${copied ? 'icon-btn-ok' : ''}`}
+              onClick={copy}
+              title={copied ? 'Copied' : 'Copy text'}
+              aria-label="Copy this message"
+            >
+              <Icon name={copied ? 'check' : 'copy'} size={15} />
+            </button>
+            {!isUser && onRetry && (
+              <button
+                type="button"
+                className="icon-btn icon-btn-sm"
+                onClick={onRetry}
+                title="Ask again"
+                aria-label="Ask the same question again"
+              >
+                <Icon name="refresh" size={15} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </article>
   )

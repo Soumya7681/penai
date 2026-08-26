@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Testing - PendriveAI docs</title>
+<meta name="description" content="Testing
+This document records exactly what was tested, and exactly what was not. Nothing here is aspirational. If a capability is not listed under &quot;Automated&quot;,">
+<link rel="icon" href="../assets/mark.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Docs</a>
+      <a class="btn btn-ghost" href="https://github.com/">Source</a>
+    </nav>
+  </div>
+</header>
+<div class="docs">
+<nav class="docnav">
+<a href="index.html">All documentation</a>
+<span class="kicker">Start here</span>
+<a href="STATUS.html">Status</a>
+<a href="OVERVIEW.html">Overview</a>
+<a href="REQUIREMENTS.html">Requirements</a>
+<span class="kicker">Build a drive</span>
+<a href="MODELS.html">Model setup</a>
+<a href="PENDRIVE.html">Preparing the pendrive</a>
+<a href="BUILD.html">Building a release</a>
+<a href="DEVELOPMENT.html">Development setup</a>
+<span class="kicker">Live with it</span>
+<a href="USAGE.html">Running PendriveAI</a>
+<a href="TROUBLESHOOTING.html">Troubleshooting</a>
+<a href="LIMITATIONS.html">Known limitations</a>
+<a href="PRIVACY.html">Privacy and security</a>
+<span class="kicker">Deeper</span>
+<a href="ARCHITECTURE.html">Architecture</a>
+<a href="TESTING.html" class="current">Testing</a>
+</nav>
+<article class="doc">
+<h1>Testing</h1>
+<p>This document records exactly what was tested, and exactly what was not. Nothing here is aspirational. If a capability is not listed under "Automated", "Manual integration" or "Filesystem behaviour", treat it as untested.</p>
+<hr>
+<h2 id="summary">Summary</h2>
+<div class="tablewrap"><table><thead><tr>
+<th>Category</th>
+<th>Status</th>
+</tr></thead><tbody>
+<tr><td>Rust unit tests</td><td><strong>85 pass</strong> (<code>cargo test</code>)</td></tr>
+<tr><td>Manual integration, Linux x86_64</td><td>Done, with the real model and the real engine</td></tr>
+<tr><td>Filesystem behaviour</td><td>Measured on the real pendrive</td></tr>
+<tr><td>Windows end to end</td><td><strong>Not tested</strong></td></tr>
+<tr><td>macOS</td><td><strong>Not tested</strong></td></tr>
+<tr><td>GPU, ARM, long sessions, multi-user</td><td><strong>Not tested</strong></td></tr>
+</tbody></table></div>
+<p>To run the automated suite:</p>
+<pre><code class="lang-bash">cd launcher
+cargo test</code></pre>
+<hr>
+<h2 id="automated">Automated</h2>
+<p>85 Rust unit tests pass (<code>cargo test</code>), covering:</p>
+<p><strong>Parsing and configuration</strong></p>
+<ul>
+<li>JSON parsing and rejection of malformed input.</li>
+<li>Config defaults, clamping and warnings.</li>
+</ul>
+<p><strong>Portable paths</strong></p>
+<ul>
+<li>Portable path resolution against four simulated roots, including a Windows-style root.</li>
+<li>Root discovery via marker file and via structure.</li>
+</ul>
+<p><strong>Model and layout validation</strong></p>
+<ul>
+<li>Model discovery: conventional name, largest <code>.gguf</code>, missing, truncated.</li>
+<li>Validation messages for missing runtime, missing model and missing web build.</li>
+</ul>
+<p><strong>Hardware assessment</strong></p>
+<ul>
+<li>Thread recommendation bounds.</li>
+<li>RAM assessment: ok, tight, unlikely, unknown.</li>
+<li>Footprint growth with context.</li>
+</ul>
+<p><strong>Logging</strong></p>
+<ul>
+<li>Log rotation and bounded history, plus unwritable-destination degradation and multi-threaded logging.</li>
+<li>ISO timestamp and civil-date conversion.</li>
+</ul>
+<p><strong>Networking</strong></p>
+<ul>
+<li>Loopback-only addressing.</li>
+<li>Port busy detection and fallback.</li>
+<li>HTTP client status and body parsing against a real one-shot server.</li>
+<li>Health 503 mapping.</li>
+<li>Health-wait abort and timeout messages.</li>
+</ul>
+<p><strong>Child process</strong></p>
+<ul>
+<li>argv construction: loopback enforced, all required flags present, spaces and shell metacharacters preserved as single arguments, and <code>--no-webui</code> never passed.</li>
+<li>Missing-binary error.</li>
+<li>Real child-process exit detection with diagnosis.</li>
+<li>Real child termination.</li>
+</ul>
+<p><strong>Single instance</strong></p>
+<ul>
+<li>Single-instance acquire, refuse and release, and a corrupt instance file.</li>
+</ul>
+<p><strong>Storage sidecar</strong></p>
+<ul>
+<li>Health.</li>
+<li>Empty document.</li>
+<li>Real round-trip to disk.</li>
+<li>Invalid JSON rejected.</li>
+<li>Foreign origin rejected.</li>
+<li>Non-loopback <code>Host</code> rejected.</li>
+<li>Oversized body rejected.</li>
+<li>Unknown routes 404.</li>
+<li>CORS preflight.</li>
+<li>Atomic write leaves no temp file.</li>
+</ul>
+<hr>
+<h2 id="manual-integration-linux-x8664">Manual integration, Linux x86_64</h2>
+<ul>
+<li>llama.cpp <code>b10549</code> started with the real <code>Qwen3-4B-Instruct-2507-Q4_K_M</code> model.</li>
+<li><code>/v1/health</code> reached 200 after <strong>6 s</strong>.</li>
+<li><code>--path</code> verified to serve a custom <code>index.html</code> and a custom asset at <code>/</code>.</li>
+<li><code>--no-webui</code> verified to break static serving (404).</li>
+<li>Real SSE streaming verified with token deltas and a <code>data: [DONE]</code> terminator.</li>
+<li>Non-streaming completion returned a correct fenced Python code block.</li>
+<li>Measured <strong>13.2 tok/s</strong> generation and <strong>50.3 tok/s</strong> prompt.</li>
+<li>Client abort verified to leave the server healthy with the slot freed.</li>
+<li><code>/props</code> and <code>/v1/models</code> verified to respond.</li>
+</ul>
+<p>The performance figures come from one machine only and are not a guarantee. The development machine was an Intel-class x86_64 with 12 logical cores and 15 GiB of RAM, with the model on a local SSD, context 4096 and 6 threads.</p>
+<hr>
+<h2 id="filesystem-behaviour-measured-on-the-real-pendrive">Filesystem behaviour, measured on the real pendrive</h2>
+<ul>
+<li>Direct ELF execution denied under FAT32 <code>showexec</code>.</li>
+<li>Symlinks and hard links not permitted.</li>
+<li>Case-insensitive.</li>
+<li>3.4 MB/s writes.</li>
+</ul>
+<hr>
+<h2 id="static-checks-only-release-assetsstartaibat">Static checks only, <code>release-assets/StartAI.bat</code></h2>
+<p>There is no Windows machine here, so the fallback launcher was never executed. What *was* checked, on Linux, is only this:</p>
+<ul>
+<li>The file is pure ASCII with CRLF line endings, and <code>file(1)</code> identifies it as a DOS batch file.</li>
+<li>The self-extraction mechanism was simulated: <code>LastIndexOf('#@PSBEGIN@')</code> plus <code>Substring($i+10)</code> yields exactly the PowerShell section, the batch section terminates with <code>endlocal &amp; exit /b</code> before the marker, and the marker's last occurrence is the real one rather than either mention in the header.</li>
+<li>Quotes, parentheses, brackets and braces in the PowerShell section balance under a tokenizer that understands <code>''</code> and backtick escapes.</li>
+</ul>
+<p>None of that is a substitute for running it. Balanced braces are not a parse, and a parse is not a working launcher.</p>
+<hr>
+<h2 id="not-tested">Not tested</h2>
+<ul>
+<li><strong>Windows end to end.</strong> There is no Windows machine available, and no Windows binary was built.</li>
+<li><strong><code>StartAI.bat</code>.</strong></li>
+<li><strong>macOS.</strong></li>
+<li><strong>The <code>StartAI.sh</code> FAT32 staging bootstrap end to end.</strong></li>
+<li><strong>GPU builds.</strong></li>
+<li><strong>Any ARM platform.</strong></li>
+<li><strong>Long multi-hour sessions.</strong></li>
+<li><strong>Concurrent multi-user access.</strong></li>
+</ul>
+<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+reads as plain markdown in the repository under <code>docs/</code>.</p>
+</article>
+</div>
+</body>
+</html>

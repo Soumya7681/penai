@@ -1,0 +1,635 @@
+/*
+ * PendriveAI site styles - shared by the landing page and the docs.
+ *
+ * Same two-part colour system as the app itself: teal for anything you can act
+ * on, jade/amber/coral only for machine state. No webfont: the project's whole
+ * argument is that it needs nothing from the network, and a page that pulls a
+ * font from a CDN to say so would be arguing against itself.
+ */
+
+:root {
+  color-scheme: dark;
+
+  --bg: #080b0e;
+  --bg-panel: #0f1319;
+  --bg-raised: #151a21;
+  --bg-sunken: #0c1015;
+  --border: #1c232c;
+  --border-strong: #2b333e;
+
+  --text: #e8ecf1;
+  --text-dim: #9aa5b2;
+  --text-faint: #6b7684;
+
+  --accent: #3fbacd;
+  --accent-hover: #6ad0e0;
+  --accent-ink: #04191d;
+  --accent-soft: rgba(63, 186, 205, 0.12);
+
+  --led-ok: #3fbf8f;
+  --led-wait: #e8a33d;
+
+  --r: 10px;
+  --r-lg: 16px;
+  --pill: 999px;
+
+  --font-ui: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+    'Liberation Mono', 'DejaVu Sans Mono', monospace;
+
+  --page: 1080px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+img {
+  max-width: 100%;
+}
+
+code,
+kbd {
+  font-family: var(--font-mono);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.wrap {
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* --------------------------------------------------------------- topbar */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(8, 11, 14, 0.86);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-in {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 60px;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.topbar img {
+  height: 26px;
+  width: auto;
+}
+
+.topbar nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  font-size: 14px;
+}
+
+.topbar nav a {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.topbar nav a:hover {
+  color: var(--text);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: var(--pill);
+  border: 1px solid transparent;
+  font-size: 14.5px;
+  font-weight: 560;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  color: var(--accent-ink);
+}
+
+.btn-ghost {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.btn-ghost:hover {
+  border-color: var(--text-faint);
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------ hero */
+
+.hero {
+  padding: 92px 0 64px;
+  text-align: center;
+}
+
+.hero h1 {
+  font-size: clamp(2.2rem, 1.3rem + 3.4vw, 3.9rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  margin: 26px auto 20px;
+  max-width: 16ch;
+  font-weight: 680;
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.hero p {
+  max-width: 58ch;
+  margin: 0 auto;
+  color: var(--text-dim);
+  font-size: 18px;
+}
+
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+/* The readout strip from the app, reused as the page's identity motif. */
+.plate {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 40px auto 0;
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  background: var(--bg-panel);
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-right: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.cell:last-child {
+  border-right: 0;
+}
+
+.cell b {
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+
+.cell span {
+  color: var(--text-dim);
+}
+
+.led {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--led-ok);
+  box-shadow: 0 0 0 3px rgba(63, 191, 143, 0.16);
+}
+
+.shot {
+  margin: 56px auto 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+  display: block;
+}
+
+/* --------------------------------------------------------------- sections */
+
+section {
+  padding: 76px 0;
+  border-top: 1px solid var(--border);
+}
+
+h2.section-title {
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2.1rem);
+  letter-spacing: -0.025em;
+  margin: 10px 0 14px;
+  font-weight: 660;
+}
+
+.section-lead {
+  color: var(--text-dim);
+  max-width: 62ch;
+  margin: 0 0 40px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg-panel);
+  padding: 22px 22px 24px;
+}
+
+.card h3 {
+  margin: 12px 0 8px;
+  font-size: 16.5px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+}
+
+.card p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 14.5px;
+}
+
+/* Three real steps in a fixed order, so they are numbered. */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  counter-reset: step;
+}
+
+.step {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg-panel);
+  padding: 24px 22px;
+}
+
+.step::before {
+  counter-increment: step;
+  content: counter(step, decimal-leading-zero);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.step h3 {
+  margin: 10px 0 8px;
+  font-size: 16.5px;
+  font-weight: 620;
+}
+
+.step p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 14.5px;
+}
+
+.step code {
+  display: block;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12.5px;
+  overflow-x: auto;
+}
+
+table.specs {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14.5px;
+}
+
+table.specs th,
+table.specs td {
+  text-align: left;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+table.specs th {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  font-weight: 600;
+  white-space: nowrap;
+  width: 210px;
+}
+
+.note {
+  border-left: 2px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 14px 18px;
+  border-radius: 0 var(--r) var(--r) 0;
+  color: var(--text-dim);
+  font-size: 14.5px;
+}
+
+footer.site {
+  border-top: 1px solid var(--border);
+  padding: 40px 0 60px;
+  color: var(--text-faint);
+  font-size: 14px;
+}
+
+footer.site a {
+  color: var(--text-dim);
+}
+
+footer.site .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ------------------------------------------------------------- docs pages */
+
+.docs {
+  display: grid;
+  grid-template-columns: 252px minmax(0, 1fr);
+  gap: 48px;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+  align-items: start;
+}
+
+.docnav {
+  position: sticky;
+  top: 84px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg-panel);
+  padding: 16px 14px;
+}
+
+.docnav .kicker {
+  display: block;
+  padding: 10px 8px 6px;
+}
+
+.docnav a {
+  display: block;
+  padding: 6px 9px;
+  border-radius: 7px;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.docnav a:hover {
+  background: var(--bg-raised);
+  color: var(--text);
+}
+
+.docnav a.current {
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 560;
+}
+
+.doc {
+  min-width: 0;
+}
+
+.doc h1 {
+  font-size: clamp(1.8rem, 1.4rem + 1.6vw, 2.4rem);
+  letter-spacing: -0.03em;
+  margin: 0 0 12px;
+  font-weight: 680;
+}
+
+.doc h2 {
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  margin: 44px 0 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-weight: 640;
+}
+
+.doc h3 {
+  font-size: 1.08rem;
+  margin: 30px 0 10px;
+  font-weight: 620;
+}
+
+.doc h4 {
+  font-size: 0.98rem;
+  margin: 24px 0 8px;
+  color: var(--text-dim);
+  font-weight: 620;
+}
+
+.doc p,
+.doc li {
+  color: var(--text-dim);
+}
+
+.doc strong {
+  color: var(--text);
+}
+
+.doc ul,
+.doc ol {
+  padding-left: 22px;
+}
+
+.doc li {
+  margin-bottom: 6px;
+}
+
+.doc li::marker {
+  color: var(--text-faint);
+}
+
+.doc blockquote {
+  margin: 20px 0;
+  padding: 12px 18px;
+  border-left: 2px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 var(--r) var(--r) 0;
+}
+
+.doc blockquote p {
+  margin: 0;
+}
+
+.doc hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 32px 0;
+}
+
+.doc :not(pre) > code {
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 0.86em;
+  color: var(--text);
+}
+
+.doc pre {
+  margin: 18px 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--bg-sunken);
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  tab-size: 4;
+}
+
+.doc pre code {
+  color: #d7e0ea;
+}
+
+.doc .tablewrap {
+  overflow-x: auto;
+  margin: 18px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+
+.doc table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+
+.doc th,
+.doc td {
+  text-align: left;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+
+.doc th {
+  background: var(--bg-raised);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.doc tr:last-child td {
+  border-bottom: 0;
+}
+
+.doc th:last-child,
+.doc td:last-child {
+  border-right: 0;
+}
+
+.doc-foot {
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text-faint);
+}
+
+@media (max-width: 860px) {
+  .docs {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .docnav {
+    position: static;
+  }
+
+  .topbar nav a.hide-sm {
+    display: none;
+  }
+
+  .hero {
+    padding: 60px 0 44px;
+  }
+
+  section {
+    padding: 56px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.001ms !important;
+  }
+}

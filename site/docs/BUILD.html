@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building a release - PendriveAI docs</title>
+<meta name="description" content="Building a release
+One command for the whole drive, and the individual steps behind it.">
+<link rel="icon" href="../assets/mark.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Docs</a>
+      <a class="btn btn-ghost" href="https://github.com/">Source</a>
+    </nav>
+  </div>
+</header>
+<div class="docs">
+<nav class="docnav">
+<a href="index.html">All documentation</a>
+<span class="kicker">Start here</span>
+<a href="STATUS.html">Status</a>
+<a href="OVERVIEW.html">Overview</a>
+<a href="REQUIREMENTS.html">Requirements</a>
+<span class="kicker">Build a drive</span>
+<a href="MODELS.html">Model setup</a>
+<a href="PENDRIVE.html">Preparing the pendrive</a>
+<a href="BUILD.html" class="current">Building a release</a>
+<a href="DEVELOPMENT.html">Development setup</a>
+<span class="kicker">Live with it</span>
+<a href="USAGE.html">Running PendriveAI</a>
+<a href="TROUBLESHOOTING.html">Troubleshooting</a>
+<a href="LIMITATIONS.html">Known limitations</a>
+<a href="PRIVACY.html">Privacy and security</a>
+<span class="kicker">Deeper</span>
+<a href="ARCHITECTURE.html">Architecture</a>
+<a href="TESTING.html">Testing</a>
+</nav>
+<article class="doc">
+<h1>Building a release</h1>
+<p>One command for the whole drive, and the individual steps behind it.</p>
+<hr>
+<h2 id="building-the-release">Building the release</h2>
+<h3 id="the-one-command">The one command</h3>
+<pre><code class="lang-bash">./scripts/build-all.sh --target /media/you/PENDRIVEAI</code></pre>
+<p>That is the whole build. It fetches the llama.cpp runtimes, builds the web UI, builds the launcher for Linux and (if mingw-w64 is installed) for Windows, downloads and checksums the model, assembles <code>release/</code>, and copies the result onto the drive.</p>
+<p>It is resumable. Every step skips itself when its output already exists, so an interrupted run costs nothing to repeat - which matters, because the model download alone is 2.5 GB. It never uses <code>sudo</code> and never formats anything; if a prerequisite needs root it stops and prints the exact command to run.</p>
+<p>Useful variations:</p>
+<pre><code class="lang-bash">./scripts/build-all.sh                             # build only, copy nothing
+./scripts/build-all.sh --model ~/my-model.gguf     # use a model you already have
+./scripts/build-all.sh --platform linux            # skip the Windows half
+./scripts/build-all.sh --skip-model                # package without weights
+./scripts/build-all.sh --clean                     # rebuild everything</code></pre>
+<p>The model is cached in <code>~/.cache/pendriveai/model.gguf</code>, outside the repo, so <code>--clean</code> and reformatting the drive never cost another 2.5 GB download.</p>
+<h3 id="the-individual-steps">The individual steps</h3>
+<p><code>build-all.sh</code> calls these in order. Run them by hand if you want to stop between stages.</p>
+<pre><code class="lang-bash">./scripts/fetch-runtime.sh     # llama-b10549-bin-ubuntu-x64.tar.gz, trimmed
+cd web &amp;&amp; npm install &amp;&amp; npm run build &amp;&amp; cd ..
+./scripts/build-linux.sh       # builds StartAI and stages runtime + web
+./scripts/package.sh           # assembles the final release/ folder</code></pre>
+<p><code>cargo test</code> should report 85 passing tests before you package anything.</p>
+<p>The packaging script does one non-obvious job. The llama.cpp archives contain symlinks such as <code>libggml-base.so -&gt; libggml-base.so.0.20.2</code>, and neither FAT32 nor exFAT can store a symlink. The script replaces each symlink with a real file named after the SONAME the binary actually loads. Skip that step and the runtime will fail to start from the drive.</p>
+<h2 id="building-the-windows-release">Building the Windows release</h2>
+<p><strong>Read this first: <code>StartAI.exe</code> was not built for this release.</strong> The build machine has no mingw-w64 and no MSVC toolchain, and installing one was declined. The Windows path is therefore <strong>untested on real Windows hardware</strong>.</p>
+<p>There are three ways forward.</p>
+<p><strong>Option A, build natively on Windows (recommended).</strong></p>
+<pre><code class="lang-powershell">cd launcher
+cargo build --release        # MSVC toolchain</code></pre>
+<p>The binary lands at <code>launcher/target/release/StartAI.exe</code>. Copy it to the release root.</p>
+<p><strong>Option B, cross-compile from Linux.</strong></p>
+<pre><code class="lang-bash">sudo apt install mingw-w64
+rustup target add x86_64-pc-windows-gnu
+cd launcher
+cargo build --release --target x86_64-pc-windows-gnu</code></pre>
+<p><strong>Option C, ship no compiler at all.</strong> A zero-compile fallback launcher, <code>StartAI.bat</code>, is included on the drive so Windows is usable without any toolchain. It uses only <code>cmd.exe</code> and PowerShell, both built into Windows.</p>
+<p>It reproduces the parts of the launcher that the drive cannot work without: it reads <code>config/config.json</code>, resolves the model the same way (explicit config entry, then <code>model.gguf</code>, then the largest <code>.gguf</code>), rejects a truncated or non-GGUF file, picks threads with the same rule, scans for a free loopback port, writes <code>web/runtime-config.json</code>, starts <code>llama-server</code> with the same argv, waits for <code>/v1/health</code> and opens the browser.</p>
+<p>It is still a fallback, not a replacement. Four things are missing:</p>
+<div class="tablewrap"><table><thead><tr>
+<th>Missing</th>
+<th>Consequence</th>
+</tr></thead><tbody>
+<tr><td>The RAM gate</td><td>It measures RAM and warns, but never reduces the context or refuses to start</td></tr>
+<tr><td>The single-instance guard</td><td>Running it twice starts two servers on two ports</td></tr>
+<tr><td>Rotating log files</td><td><code>llama-server</code> writes to the console window instead of <code>data/logs/</code></td></tr>
+<tr><td>The chat-history sidecar</td><td>Chats stay in that browser's storage on that computer and do not travel with the drive</td></tr>
+</tbody></table></div>
+<p><code>StartAI.bat</code> is untested on real Windows hardware.</p>
+<p>The Windows runtime itself needs no compiler. <code>scripts/fetch-runtime.ps1</code> downloads and trims <code>llama-b10549-bin-win-cpu-x64.zip</code>, and <code>scripts/build-windows.ps1</code> assembles the release folder.</p>
+<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+reads as plain markdown in the repository under <code>docs/</code>.</p>
+</article>
+</div>
+</body>
+</html>

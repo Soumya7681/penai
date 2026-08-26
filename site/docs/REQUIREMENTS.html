@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Requirements - PendriveAI docs</title>
+<meta name="description" content="Requirements
+Platforms, hardware, and the storage budget for an 8 GB drive.">
+<link rel="icon" href="../assets/mark.svg">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <nav>
+      <a href="../index.html">Home</a>
+      <a href="index.html">Docs</a>
+      <a class="btn btn-ghost" href="https://github.com/">Source</a>
+    </nav>
+  </div>
+</header>
+<div class="docs">
+<nav class="docnav">
+<a href="index.html">All documentation</a>
+<span class="kicker">Start here</span>
+<a href="STATUS.html">Status</a>
+<a href="OVERVIEW.html">Overview</a>
+<a href="REQUIREMENTS.html" class="current">Requirements</a>
+<span class="kicker">Build a drive</span>
+<a href="MODELS.html">Model setup</a>
+<a href="PENDRIVE.html">Preparing the pendrive</a>
+<a href="BUILD.html">Building a release</a>
+<a href="DEVELOPMENT.html">Development setup</a>
+<span class="kicker">Live with it</span>
+<a href="USAGE.html">Running PendriveAI</a>
+<a href="TROUBLESHOOTING.html">Troubleshooting</a>
+<a href="LIMITATIONS.html">Known limitations</a>
+<a href="PRIVACY.html">Privacy and security</a>
+<span class="kicker">Deeper</span>
+<a href="ARCHITECTURE.html">Architecture</a>
+<a href="TESTING.html">Testing</a>
+</nav>
+<article class="doc">
+<h1>Requirements</h1>
+<p>Platforms, hardware, and the storage budget for an 8 GB drive.</p>
+<hr>
+<h2 id="supported-platforms">Supported platforms</h2>
+<div class="tablewrap"><table><thead><tr>
+<th>Platform</th>
+<th>Status</th>
+</tr></thead><tbody>
+<tr><td>Linux x86_64</td><td>Supported and tested. Requires <strong>glibc 2.34 or newer</strong></td></tr>
+<tr><td>Windows x86_64</td><td>Supported by design, <strong>untested on real Windows hardware</strong>; <code>StartAI.exe</code> is not built here</td></tr>
+<tr><td>macOS</td><td>Not supported in v1. No runtime is shipped and the memory probe returns unknown</td></tr>
+<tr><td>ARM (any OS)</td><td>Not supported. No ARM runtime is shipped and none was tested</td></tr>
+<tr><td>iOS / iPadOS</td><td>Cannot work. See below</td></tr>
+</tbody></table></div>
+<p><strong>glibc requirement.</strong> The prebuilt Linux binaries were checked with <code>objdump</code> and require glibc 2.34 or newer. That covers Ubuntu 22.04 and later, Debian 12 and later, and Fedora 35 and later. Older distributions will not run them. The Linux binaries carry <code>RUNPATH=$ORIGIN</code>, so no <code>LD_LIBRARY_PATH</code> is needed.</p>
+<p><strong>iOS and iPadOS cannot run PendriveAI.</strong> This is not a missing feature, it is a platform rule. iOS does not let a user execute an arbitrary native binary from external storage: apps must be installed through the App Store or a provisioning profile, they are sandboxed, and they cannot spawn child processes. The Files app can read a USB drive but it cannot execute anything on it. There is therefore no way to run <code>llama-server</code> from a pendrive on iOS. The realistic alternatives, neither of which is promised here, are a native iOS app that embeds llama.cpp with its own model copied into the app sandbox, or running PendriveAI on a computer and reaching it from the iPad over the LAN. The second would require binding beyond loopback, which v1 deliberately does not support.</p>
+<h2 id="hardware-requirements">Hardware requirements</h2>
+<p><strong>Target computer (the machine you plug the drive into):</strong></p>
+<div class="tablewrap"><table><thead><tr>
+<th>Item</th>
+<th>Requirement</th>
+</tr></thead><tbody>
+<tr><td>CPU</td><td>Any modern x86_64. The runtime auto-selects among 15 bundled CPU-feature variants, from SSE4.2 up to AVX-512 / Zen 4</td></tr>
+<tr><td>RAM</td><td>8 GB recommended. 4 GB workable at reduced context. Below 4 GB is likely to fail</td></tr>
+<tr><td>Disk</td><td>None. Nothing is installed</td></tr>
+<tr><td>Network</td><td>None</td></tr>
+<tr><td>Privileges</td><td>No admin rights</td></tr>
+</tbody></table></div>
+<p><strong>Not needed on the target computer:</strong> Node.js, Python, Docker, Ollama, an internet connection, admin rights, or any installation step.</p>
+<p><strong>Why 15 CPU variants matter.</strong> One drive has to work on an old office desktop and on a current laptop. The prebuilt llama.cpp release ships multiple builds selected at runtime by CPU feature detection, which is exactly the property that makes a single portable drive viable.</p>
+<p><strong>RAM arithmetic.</strong> The model has 36 layers, 8 KV heads (GQA) and head_dim 128, so the f16 KV cache costs <code>2 * 36 * 8 * 128 * 2 = 147,456</code> bytes per token, which is 144 KiB per token. At a context of 4096 that is roughly 0.6 GiB of KV cache on top of the 2.50 GB of weights, plus about 400 MiB of buffers. The launcher does this estimate before starting anything and reacts to the result (see <a href="USAGE.html#starting-pendriveai">Starting PendriveAI</a>).</p>
+<h2 id="8-gb-storage-requirements">8 GB storage requirements</h2>
+<div class="tablewrap"><table><thead><tr>
+<th>Item</th>
+<th>Size</th>
+</tr></thead><tbody>
+<tr><td>Model (<code>Qwen3-4B-Instruct-2507-Q4_K_M.gguf</code>)</td><td>2.50 GB</td></tr>
+<tr><td>Linux runtime (trimmed)</td><td>about 40 MB</td></tr>
+<tr><td>Windows runtime (trimmed)</td><td>about 45 MB</td></tr>
+<tr><td>Web production build</td><td>under 1 MB</td></tr>
+<tr><td>Launcher binaries</td><td>about 1 MB</td></tr>
+<tr><td>Config, docs and logs</td><td>well under 5 MB</td></tr>
+<tr><td><strong>Total</strong></td><td><strong>about 2.6 GB</strong></td></tr>
+</tbody></table></div>
+<p>An 8 GB pendrive gives roughly 7.3 GB usable, which leaves about 4.7 GB free for chat data and future updates.</p>
+<p>For reference: the downloaded llama.cpp archives are 16.7 MB (Linux <code>llama-b10549-bin-ubuntu-x64.tar.gz</code>) and 18.6 MB (Windows <code>llama-b10549-bin-win-cpu-x64.zip</code>). Extracted they are 41 MB and 46 MB. After trimming to only the files <code>llama-server</code> actually needs, each platform folder is roughly 40 to 45 MB.</p>
+<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+reads as plain markdown in the repository under <code>docs/</code>.</p>
+</article>
+</div>
+</body>
+</html>

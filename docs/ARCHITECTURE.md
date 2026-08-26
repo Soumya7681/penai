@@ -715,8 +715,8 @@ is compensating for filesystem limits.
 
 Packaging cannot compensate for the wrong filesystem, so the filesystem is part
 of the architecture rather than a deployment detail. This subsection is the full
-version of the procedure; the shorter operator-facing version is section 12.1 of
-the README.
+version of the procedure; the shorter operator-facing version is
+[Format the pendrive first](PENDRIVE.md#format-the-pendrive-first-do-this-before-anything-else).
 
 #### Why the filesystem is an architectural decision
 

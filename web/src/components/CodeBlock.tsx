@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { Icon } from './Icon'
 
 interface Props {
   code: string
@@ -56,16 +57,17 @@ export function CodeBlock({ code, language, unterminated }: Props) {
       <div className="code-head">
         <span className="code-lang">{language || 'code'}</span>
         {unterminated && (
-          <span className="code-warn" title="The response ended before this code block closed.">
+          <span className="code-warn" title="The reply ended before this block closed.">
             truncated
           </span>
         )}
         <button
           type="button"
-          className="code-copy"
+          className={`code-copy ${copied ? 'code-copy-done' : ''}`}
           onClick={copy}
-          aria-label="Copy code to clipboard"
+          aria-label="Copy code"
         >
+          <Icon name={copied ? 'check' : 'copy'} size={13} />
           {failed ? 'Copy failed' : copied ? 'Copied' : 'Copy'}
         </button>
       </div>
