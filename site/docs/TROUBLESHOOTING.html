@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Troubleshooting - PendriveAI docs</title>
+<title>Troubleshooting - PenAI docs</title>
 <meta name="description" content="Troubleshooting
 Symptoms, causes and fixes, including findings from the real test drive.">
 <link rel="icon" href="../assets/mark.svg">
@@ -12,7 +12,7 @@ Symptoms, causes and fixes, including findings from the real test drive.">
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -33,7 +33,7 @@ Symptoms, causes and fixes, including findings from the real test drive.">
 <a href="BUILD.html">Building a release</a>
 <a href="DEVELOPMENT.html">Development setup</a>
 <span class="kicker">Live with it</span>
-<a href="USAGE.html">Running PendriveAI</a>
+<a href="USAGE.html">Running PenAI</a>
 <a href="TROUBLESHOOTING.html" class="current">Troubleshooting</a>
 <a href="LIMITATIONS.html">Known limitations</a>
 <a href="PRIVACY.html">Privacy and security</a>
@@ -72,12 +72,12 @@ Symptoms, causes and fixes, including findings from the real test drive.">
 </tbody></table></div>
 <p>Four consequences follow.</p>
 <ol>
-<li><strong>Linux users cannot run <code>./StartAI</code> directly from a FAT32 drive.</strong> The shipped fix is <code>StartAI.sh</code>, run as <code>sh StartAI.sh</code>, which stages the launcher and runtime into a local temporary directory, marks them executable, and sets <code>PENDRIVEAI_ROOT</code> back to the pendrive. Windows is unaffected, because <code>.exe</code> runs normally on FAT32.</li>
+<li><strong>Linux users cannot run <code>./StartAI</code> directly from a FAT32 drive.</strong> The shipped fix is <code>StartAI.sh</code>, run as <code>sh StartAI.sh</code>, which stages the launcher and runtime into a local temporary directory, marks them executable, and sets <code>PENAI_ROOT</code> back to the pendrive. Windows is unaffected, because <code>.exe</code> runs normally on FAT32.</li>
 <li><strong>exFAT is the recommended fix.</strong> It allows direct execution on Linux and removes the 4 GiB per-file limit, while staying readable on Windows and macOS. Commands are in <a href="PENDRIVE.html">Preparing the pendrive</a>. Reformatting erases the drive, so confirm the device with <code>lsblk</code> first.</li>
 <li><strong>Symlinks must be flattened at packaging time.</strong> Neither FAT32 nor exFAT stores symlinks, so the packaging script replaces the llama.cpp symlinks (<code>libggml-base.so -&gt; libggml-base.so.0.20.2</code> and friends) with real files named after the SONAME the binary actually loads.</li>
 <li><strong>Never run <code>npm install</code> on the drive.</strong> It needs about 30,000 small files and symlinks. Build caches belong on local disk.</li>
 </ol>
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

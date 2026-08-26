@@ -81,7 +81,7 @@ Four consequences follow.
 1. **Linux users cannot run `./StartAI` directly from a FAT32 drive.** The
    shipped fix is `StartAI.sh`, run as `sh StartAI.sh`, which stages the
    launcher and runtime into a local temporary directory, marks them executable,
-   and sets `PENDRIVEAI_ROOT` back to the pendrive. Windows is unaffected,
+   and sets `PENAI_ROOT` back to the pendrive. Windows is unaffected,
    because `.exe` runs normally on FAT32.
 2. **exFAT is the recommended fix.** It allows direct execution on Linux and
    removes the 4 GiB per-file limit, while staying readable on Windows and macOS.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# package.sh - assemble a PendriveAI release folder from artifacts that are
+# package.sh - assemble a PenAI release folder from artifacts that are
 #              already built.
 #
 # This script never compiles anything. It expects:
@@ -12,10 +12,10 @@
 # and it lays those out as the exact tree that the launcher expects to find on
 # the drive:
 #
-#   release/<platform>/PendriveAI/
+#   release/<platform>/PenAI/
 #     StartAI            (linux)      StartAI.exe   (windows, if built)
 #     StartAI.sh         (linux)      StartAI.bat   (windows)
-#     .pendriveai-root   version + build timestamp, used to locate the root
+#     .penai-root   version + build timestamp, used to locate the root
 #     runtime/<platform>/
 #     models/README.md   (+ model.gguf only when --model is given)
 #     web/               contents of web/dist
@@ -61,7 +61,7 @@ Usage: scripts/package.sh [options]
   --platform linux|windows|both   Which release(s) to assemble (default: both)
   --out <dir>                     Output directory (default: ${ROOT}/release)
   --model <path>                  Copy this .gguf in as models/model.gguf
-  --version <str>                 Version string for .pendriveai-root
+  --version <str>                 Version string for .penai-root
                                   (default: the version in launcher/Cargo.toml)
   --force                         Overwrite a non-empty output directory
   -h, --help                      Show this help
@@ -129,7 +129,7 @@ fi
 
 BUILD_STAMP="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
-say "PendriveAI packager"
+say "PenAI packager"
 say "  repo root: $ROOT"
 say "  platform:  $PLATFORM"
 say "  out:       $OUT"
@@ -148,11 +148,11 @@ find_launcher() {
   if [ -n "${CARGO_TARGET_DIR:-}" ]; then
     candidates+=("$CARGO_TARGET_DIR/$rel")
   fi
-  if [ -n "${PENDRIVEAI_CARGO_TARGET_DIR:-}" ]; then
-    candidates+=("$PENDRIVEAI_CARGO_TARGET_DIR/$rel")
+  if [ -n "${PENAI_CARGO_TARGET_DIR:-}" ]; then
+    candidates+=("$PENAI_CARGO_TARGET_DIR/$rel")
   fi
   candidates+=(
-    "${TMPDIR:-/tmp}/pendriveai-build/cargo/$rel"
+    "${TMPDIR:-/tmp}/penai-build/cargo/$rel"
     "$ROOT/launcher/target/$rel"
     "$ROOT/target/$rel"
   )
@@ -196,7 +196,7 @@ copy_tree() {
 write_marker() {
   # write_marker <dest> <platform>
   local dest="$1" platform="$2"
-  cat > "$dest/.pendriveai-root" <<MARKER
+  cat > "$dest/.penai-root" <<MARKER
 ${VERSION}
 built: ${BUILD_STAMP}
 platform: ${platform}
@@ -212,12 +212,12 @@ copy_models_readme() {
   else
     warn "models/README.md is missing from the repo; writing a minimal one into the release."
     cat > "$dest/models/README.md" <<MODELREADME
-# PendriveAI model directory
+# PenAI model directory
 
 Put a GGUF model file here. The launcher uses \`model.gguf\` if it exists,
 otherwise the largest \`.gguf\` file in this directory.
 
-Reference model used by PendriveAI:
+Reference model used by PenAI:
 
 - repository: unsloth/Qwen3-4B-Instruct-2507-GGUF
 - file: ${MODEL_FILENAME}
@@ -241,7 +241,7 @@ copy_docs() {
   else
     warn "README.md is missing from the repo root; writing a minimal one into the release."
     cat > "$dest/README.md" <<RELREADME
-# PendriveAI ${VERSION}
+# PenAI ${VERSION}
 
 A fully offline AI assistant that runs from this drive. Nothing is sent to the
 internet: the model, the llama.cpp server and the web UI all live in this
@@ -391,7 +391,7 @@ fix_permissions() {
 size_report() {
   # size_report <dest> <platform> <model-included:0|1>
   local dest="$1" platform="$2" with_model="$3"
-  step "Size breakdown - release/$platform/PendriveAI"
+  step "Size breakdown - release/$platform/PenAI"
   local entry name b total=0
   # Top-level entries, largest first.
   while IFS= read -r entry; do
@@ -431,13 +431,13 @@ size_report() {
 # ------------------------------------------------------------------- linux ----
 package_linux() {
   step "Assembling Linux release"
-  local dest="$OUT/linux/PendriveAI"
+  local dest="$OUT/linux/PenAI"
   prepare_dest "$dest"
 
   local bin
   if ! bin="$(find_launcher release/StartAI)"; then
     die "no Linux launcher binary found.
-    Looked in \$CARGO_TARGET_DIR, \${TMPDIR:-/tmp}/pendriveai-build/cargo and
+    Looked in \$CARGO_TARGET_DIR, \${TMPDIR:-/tmp}/penai-build/cargo and
     ${ROOT}/launcher/target (subpath release/StartAI).
     Fix: run  scripts/build-linux.sh   (it builds and then calls this script)."
   fi
@@ -471,7 +471,7 @@ package_linux() {
 # ----------------------------------------------------------------- windows ----
 package_windows() {
   step "Assembling Windows release"
-  local dest="$OUT/windows/PendriveAI"
+  local dest="$OUT/windows/PenAI"
   prepare_dest "$dest"
 
   local bin=""

@@ -11,10 +11,21 @@ interface Props {
   onRetry?: (() => void) | undefined
 }
 
+/** A user message past this size is clamped in the thread with a Show more. */
+const CLAMP_CHARS = 900
+const CLAMP_LINES = 14
+
 export function MessageBubble({ message, streaming, onRetry }: Props) {
   const [showReasoning, setShowReasoning] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const isUser = message.role === 'user'
+  // A pasted file should not push the reply off the screen.
+  const clamped =
+    isUser &&
+    !expanded &&
+    (message.content.length > CLAMP_CHARS ||
+      message.content.split('\n').length > CLAMP_LINES)
 
   const copy = useCallback(() => {
     void (async () => {
@@ -82,7 +93,19 @@ export function MessageBubble({ message, streaming, onRetry }: Props) {
         ) : isUser ? (
           // User text is shown verbatim. Running it through the markdown parser
           // would mangle pasted code and change what the user typed.
-          <div className="bubble">{message.content}</div>
+          <div className={`bubble ${clamped ? 'bubble-clamped' : ''}`}>
+            {message.content}
+            {(clamped || expanded) && (
+              <button
+                type="button"
+                className="bubble-more"
+                onClick={() => setExpanded((v) => !v)}
+                aria-expanded={expanded}
+              >
+                {expanded ? 'Show less' : 'Show all'}
+              </button>
+            )}
+          </div>
         ) : (
           <div className="md">
             {hasText ? (

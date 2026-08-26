@@ -1,4 +1,4 @@
-//! PendriveAI launcher.
+//! PenAI launcher.
 //!
 //! Plug in the pendrive, run one executable, chat with a local model in the
 //! browser. This program is the only moving part: it locates everything
@@ -30,7 +30,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const NAME: &str = "PendriveAI";
+const NAME: &str = "PenAI";
 
 fn main() -> ExitCode {
     match run() {
@@ -170,7 +170,7 @@ fn run() -> Result<(), String> {
     // ---------------------------------------------------------------- layout
     let layout = Layout::discover().map_err(|e| {
         format!(
-            "cannot determine the PendriveAI folder from this executable's location: {}",
+            "cannot determine the PenAI folder from this executable's location: {}",
             e
         )
     })?;
@@ -455,7 +455,7 @@ fn run() -> Result<(), String> {
     guard.publish(&url, port, store.as_ref().map(|s| s.port));
 
     println!("  ----------------------------------------");
-    log.info(format!("PendriveAI is ready at  {}", url));
+    log.info(format!("PenAI is ready at  {}", url));
     println!("  ----------------------------------------");
 
     if cfg.open_browser {
@@ -468,7 +468,7 @@ fn run() -> Result<(), String> {
     }
 
     println!();
-    println!("  Press Ctrl+C in this window to stop PendriveAI.");
+    println!("  Press Ctrl+C in this window to stop PenAI.");
     println!();
 
     // ------------------------------------------------------------- supervise
@@ -499,7 +499,7 @@ fn run() -> Result<(), String> {
     }
     server.stop(Duration::from_secs(8), &log);
     drop(guard);
-    log.info("PendriveAI stopped. Your chats stay on this drive / in this browser.");
+    log.info("PenAI stopped. Your chats stay on this drive / in this browser.");
     println!();
     Ok(())
 }
@@ -538,7 +538,7 @@ fn hold_console() {
     if !cfg!(windows) {
         return;
     }
-    if std::env::var_os("PENDRIVEAI_NO_PAUSE").is_some() {
+    if std::env::var_os("PENAI_NO_PAUSE").is_some() {
         return;
     }
     eprintln!("  Press Enter to close this window.");

@@ -1,4 +1,4 @@
-# PendriveAI documentation
+# PenAI documentation
 
 Everything that used to live in one very long README, split by the question you
 are trying to answer.
@@ -12,7 +12,7 @@ are trying to answer.
 | Document | Read it when |
 | --- | --- |
 | [Status](STATUS.md) | You want to know what is actually verified before trusting anything else. |
-| [Overview](OVERVIEW.md) | You want to know what PendriveAI is and how the parts fit. |
+| [Overview](OVERVIEW.md) | You want to know what PenAI is and how the parts fit. |
 | [Requirements](REQUIREMENTS.md) | You are choosing a drive or a machine to run it on. |
 
 ## Building a drive
@@ -28,7 +28,7 @@ are trying to answer.
 
 | Document | Read it when |
 | --- | --- |
-| [Running PendriveAI](USAGE.md) | You have a finished drive and want to start it. |
+| [Running PenAI](USAGE.md) | You have a finished drive and want to start it. |
 | [Troubleshooting](TROUBLESHOOTING.md) | Something did not work. |
 | [Known limitations](LIMITATIONS.md) | You are wondering whether a missing feature is missing on purpose. |
 | [Privacy and security](PRIVACY.md) | You need to explain to someone what leaves the machine. |

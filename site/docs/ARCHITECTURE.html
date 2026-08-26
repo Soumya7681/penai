@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PendriveAI Architecture - PendriveAI docs</title>
-<meta name="description" content="PendriveAI Architecture
-This document explains how PendriveAI is put together and, more usefully, *why* each decision was made. Where a claim was measured, it s">
+<title>PenAI Architecture - PenAI docs</title>
+<meta name="description" content="PenAI Architecture
+This document explains how PenAI is put together and, more usefully, *why* each decision was made. Where a claim was measured, it says so. Wh">
 <link rel="icon" href="../assets/mark.svg">
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -33,7 +33,7 @@ This document explains how PendriveAI is put together and, more usefully, *why* 
 <a href="BUILD.html">Building a release</a>
 <a href="DEVELOPMENT.html">Development setup</a>
 <span class="kicker">Live with it</span>
-<a href="USAGE.html">Running PendriveAI</a>
+<a href="USAGE.html">Running PenAI</a>
 <a href="TROUBLESHOOTING.html">Troubleshooting</a>
 <a href="LIMITATIONS.html">Known limitations</a>
 <a href="PRIVACY.html">Privacy and security</a>
@@ -42,8 +42,8 @@ This document explains how PendriveAI is put together and, more usefully, *why* 
 <a href="TESTING.html">Testing</a>
 </nav>
 <article class="doc">
-<h1>PendriveAI Architecture</h1>
-<p>This document explains how PendriveAI is put together and, more usefully, *why* each decision was made. Where a claim was measured, it says so. Where something was not verified, it says that too.</p>
+<h1>PenAI Architecture</h1>
+<p>This document explains how PenAI is put together and, more usefully, *why* each decision was made. Where a claim was measured, it says so. Where something was not verified, it says that too.</p>
 <p>Every technical statement here refers to llama.cpp release <code>b10549</code> (published 2026-08-21) from <code>ggml-org/llama.cpp</code>, and to the model <code>Qwen3-4B-Instruct-2507-Q4_K_M.gguf</code>.</p>
 <hr>
 <h2 id="table-of-contents">Table of contents</h2>
@@ -65,7 +65,7 @@ This document explains how PendriveAI is put together and, more usefully, *why* 
 </ol>
 <hr>
 <h2 id="1-system-architecture">1. System architecture</h2>
-<p>PendriveAI has exactly two processes at runtime, plus one thread pool inside the first of them. That is the whole system.</p>
+<p>PenAI has exactly two processes at runtime, plus one thread pool inside the first of them. That is the whole system.</p>
 <pre><code>+--------------------------------------------------------------------------+
 |  Host computer (nothing installed, no admin rights, no network)          |
 |                                                                          |
@@ -209,7 +209,7 @@ always clamped to 1..16</code></pre>
 <p>On Windows shutdown uses <code>TerminateProcess</code>. <strong>Windows shutdown is therefore not graceful.</strong> This is a known limitation, not a bug to be discovered later.</p>
 <hr>
 <h2 id="3-portable-path-strategy">3. Portable path strategy</h2>
-<p>A pendrive has no stable path. It is <code>/media/alice/PENDRIVEAI</code> on one machine, <code>/run/media/bob/My Drive</code> on another, and <code>D:\PendriveAI</code> on Windows. The entire launcher is built around never knowing its own location until runtime.</p>
+<p>A pendrive has no stable path. It is <code>/media/alice/PENAI</code> on one machine, <code>/run/media/bob/My Drive</code> on another, and <code>D:\PenAI</code> on Windows. The entire launcher is built around never knowing its own location until runtime.</p>
 <p>Rules the code obeys:</p>
 <ul>
 <li>No drive letters.</li>
@@ -219,16 +219,16 @@ always clamped to 1..16</code></pre>
 <p>Root discovery, in order:</p>
 <ol>
 <li>Start from <code>std::env::current_exe()</code>.</li>
-<li>Walk up at most 4 levels looking for a <code>.pendriveai-root</code> marker file.</li>
+<li>Walk up at most 4 levels looking for a <code>.penai-root</code> marker file.</li>
 <li>Fall back to structural detection, that is, a directory that contains the expected <code>runtime/</code>, <code>models/</code> and <code>web/</code> shape.</li>
-<li>Allow an explicit override through the <code>PENDRIVEAI_ROOT</code> environment variable.</li>
+<li>Allow an explicit override through the <code>PENAI_ROOT</code> environment variable.</li>
 </ol>
-<p>Step 4 is what makes the FAT32 bootstrap possible: <code>StartAI.sh</code> copies the executable parts to a local temporary directory and then points <code>PENDRIVEAI_ROOT</code> back at the pendrive, so the binary runs from local disk while the model and web assets are still read from the drive.</p>
+<p>Step 4 is what makes the FAT32 bootstrap possible: <code>StartAI.sh</code> copies the executable parts to a local temporary directory and then points <code>PENAI_ROOT</code> back at the pendrive, so the binary runs from local disk while the model and web assets are still read from the drive.</p>
 <p>Layout construction is written as a <strong>pure function</strong> from a root path to a set of derived paths. That makes it directly unit-testable without touching a real filesystem, and it is tested against four simulated roots including a Windows-style one:</p>
-<pre><code>/media/someone/PENDRIVEAI
+<pre><code>/media/someone/PENAI
 /run/media/other-user/My Drive     (note the space)
 /tmp/x/y/z
-D:\PendriveAI</code></pre>
+D:\PenAI</code></pre>
 <p>Root discovery is separately tested through both the marker-file path and the structural path.</p>
 <hr>
 <h2 id="4-linux-architecture">4. Linux architecture</h2>
@@ -259,13 +259,13 @@ D:\PendriveAI</code></pre>
 <p>Under <code>showexec</code>, only files named <code>.exe</code>, <code>.com</code> or <code>.bat</code> receive an execute bit. A Linux ELF named <code>StartAI</code> can never be executed from such a mount, and no amount of <code>chmod</code> changes that.</p>
 <p>Two answers ship:</p>
 <ol>
-<li><strong><code>StartAI.sh</code></strong>, run as <code>sh StartAI.sh</code>. It copies the launcher and the llama.cpp runtime into a local temporary directory, marks them executable, and runs the launcher with <code>PENDRIVEAI_ROOT</code> pointing back at the pendrive. Only the small executable parts are copied; the 2.50 GB model is still read from the drive. <strong>This bootstrap has not been tested end to end.</strong></li>
+<li><strong><code>StartAI.sh</code></strong>, run as <code>sh StartAI.sh</code>. It copies the launcher and the llama.cpp runtime into a local temporary directory, marks them executable, and runs the launcher with <code>PENAI_ROOT</code> pointing back at the pendrive. Only the small executable parts are copied; the 2.50 GB model is still read from the drive. <strong>This bootstrap has not been tested end to end.</strong></li>
 <li><strong>Reformat to exFAT.</strong> This is the recommended fix. exFAT allows direct execution on Linux and removes the 4 GiB per-file limit, while staying readable on Windows and macOS.</li>
 </ol>
 <pre><code class="lang-bash">lsblk                                     # CONFIRM the device first
 sudo apt install exfatprogs
 udisksctl unmount -b /dev/sdX1
-sudo mkfs.exfat -n PENDRIVEAI /dev/sdX1   # ERASES THE DRIVE</code></pre>
+sudo mkfs.exfat -n PENAI /dev/sdX1   # ERASES THE DRIVE</code></pre>
 <p>The full procedure, including partition-table repair, GUI alternatives, and the Windows and macOS equivalents, is in <a href="#preparing-the-drive-filesystem-choice-and-formatting">section 10, Preparing the drive</a>.</p>
 <hr>
 <h2 id="5-windows-architecture">5. Windows architecture</h2>
@@ -420,7 +420,7 @@ data: [DONE]</code></pre>
 <p><strong>No chat data is ever sent to any external server.</strong></p>
 <hr>
 <h2 id="9-security-model">9. Security model</h2>
-<p>The threat model is narrow and worth being explicit about: PendriveAI runs untrusted *model output* inside a browser page, on a machine the user controls, with no network exposure. It does not attempt to defend against a hostile local user or a compromised host.</p>
+<p>The threat model is narrow and worth being explicit about: PenAI runs untrusted *model output* inside a browser page, on a machine the user controls, with no network exposure. It does not attempt to defend against a hostile local user or a compromised host.</p>
 <h3 id="network-exposure">Network exposure</h3>
 <ul>
 <li><code>llama-server</code> binds <code>127.0.0.1</code>, never <code>0.0.0.0</code>. <strong>This is not configurable.</strong> The model is not reachable from the local network.</li>
@@ -443,8 +443,8 @@ data: [DONE]</code></pre>
 <li>Windows: <code>TerminateProcess</code>, so <strong>Windows shutdown is not graceful</strong>.</li>
 </ul>
 <h3 id="what-is-deliberately-not-protected">What is deliberately not protected</h3>
-<p>Anything running as your user on the same computer can reach a loopback port. PendriveAI adds <strong>no authentication</strong>, because putting a shared secret into a page served from the same origin buys very little: whatever can read the port can usually read the page too.</p>
-<p><strong>Do not run PendriveAI on a shared or multi-user machine you do not trust.</strong> That is the honest boundary of this design.</p>
+<p>Anything running as your user on the same computer can reach a loopback port. PenAI adds <strong>no authentication</strong>, because putting a shared secret into a page served from the same origin buys very little: whatever can read the port can usually read the page too.</p>
+<p><strong>Do not run PenAI on a shared or multi-user machine you do not trust.</strong> That is the honest boundary of this design.</p>
 <hr>
 <h2 id="10-packaging-strategy">10. Packaging strategy</h2>
 <p>Packaging turns a repository into a drive that works, and most of its real work is compensating for filesystem limits.</p>
@@ -454,7 +454,7 @@ data: [DONE]</code></pre>
 <p>Three properties of the target filesystem propagate directly into the design:</p>
 <div class="tablewrap"><table><thead><tr>
 <th>Property</th>
-<th>Consequence for PendriveAI</th>
+<th>Consequence for PenAI</th>
 </tr></thead><tbody>
 <tr><td>Can a native binary be executed from the mount?</td><td>Decides whether <code>./StartAI</code> works, or whether the <code>StartAI.sh</code> staging bootstrap is mandatory on Linux</td></tr>
 <tr><td>Maximum single-file size</td><td>Decides which model quantisations can be carried at all</td></tr>
@@ -505,26 +505,26 @@ sudo pacman -S exfatprogs          # Arch</code></pre>
 <pre><code class="lang-bash">udisksctl unmount -b /dev/sdX1
 # or
 sudo umount /dev/sdX1</code></pre>
-<p><strong>Step 4. Format as exFAT with the label <code>PENDRIVEAI</code>.</strong></p>
-<pre><code class="lang-bash">sudo mkfs.exfat -n PENDRIVEAI /dev/sdX1</code></pre>
+<p><strong>Step 4. Format as exFAT with the label <code>PENAI</code>.</strong></p>
+<pre><code class="lang-bash">sudo mkfs.exfat -n PENAI /dev/sdX1</code></pre>
 <p><strong>Step 5. Mount it again.</strong></p>
 <p>Unplug and replug, or mount explicitly:</p>
 <pre><code class="lang-bash">udisksctl mount -b /dev/sdX1</code></pre>
-<p>It appears at something like <code>/media/&lt;user&gt;/PENDRIVEAI</code> or <code>/run/media/&lt;user&gt;/PENDRIVEAI</code>. <strong>The launcher does not care what that path is</strong>, which is the entire point of the root-discovery design in section 3. Spaces in the path are fine and are covered by a unit test.</p>
+<p>It appears at something like <code>/media/&lt;user&gt;/PENAI</code> or <code>/run/media/&lt;user&gt;/PENAI</code>. <strong>The launcher does not care what that path is</strong>, which is the entire point of the root-discovery design in section 3. Spaces in the path are fine and are covered by a unit test.</p>
 <p><strong>Step 6, only if needed. Create a partition table.</strong></p>
 <p>Only when the drive has no partition table at all, or a broken one:</p>
 <pre><code class="lang-bash">sudo parted /dev/sdX -- mklabel msdos mkpart primary 1MiB 100%</code></pre>
 <p>Note that this operates on the whole device (<code>/dev/sdX</code>), not on a partition. Then format the newly created <code>/dev/sdX1</code> with Step 4.</p>
 <p><strong>Step 7. Verify.</strong></p>
 <pre><code class="lang-bash">lsblk -f</code></pre>
-<p>The partition should report <code>exfat</code> with the label <code>PENDRIVEAI</code>.</p>
+<p>The partition should report <code>exfat</code> with the label <code>PENAI</code>.</p>
 <h4 id="linux-gui-alternative">Linux, GUI alternative</h4>
-<p>GNOME Disks (<code>gnome-disks</code>): pick the USB device in the left-hand list, confirming size and model, use the menu to <strong>Format Partition</strong>, choose <strong>Other</strong> and then <strong>exFAT</strong>, and set the name to <code>PENDRIVEAI</code>.</p>
+<p>GNOME Disks (<code>gnome-disks</code>): pick the USB device in the left-hand list, confirming size and model, use the menu to <strong>Format Partition</strong>, choose <strong>Other</strong> and then <strong>exFAT</strong>, and set the name to <code>PENAI</code>.</p>
 <p>GParted also works, but it may need the <code>exfatprogs</code> package installed before exFAT appears as an option.</p>
 <h4 id="windows-file-explorer">Windows, File Explorer</h4>
 <ol>
 <li>Open <strong>This PC</strong>, right-click the USB drive, choose <strong>Format</strong>.</li>
-<li><strong>File system:</strong> exFAT. <strong>Allocation unit size:</strong> default. <strong>Volume label:</strong> <code>PENDRIVEAI</code>. Leave <strong>Quick Format</strong> checked.</li>
+<li><strong>File system:</strong> exFAT. <strong>Allocation unit size:</strong> default. <strong>Volume label:</strong> <code>PENAI</code>. Leave <strong>Quick Format</strong> checked.</li>
 <li>Click <strong>Start</strong> and confirm. This erases the drive, so confirm the drive letter in the dialog belongs to the pendrive.</li>
 </ol>
 <h4 id="windows-powershell-alternative">Windows, PowerShell alternative</h4>
@@ -532,16 +532,16 @@ sudo umount /dev/sdX1</code></pre>
 <pre><code class="lang-powershell">Get-Disk
 Get-Partition -DiskNumber &lt;n&gt;</code></pre>
 <p>Verify the disk number and the size before continuing. Then format, replacing <code>E</code> with the real drive letter:</p>
-<pre><code class="lang-powershell">Format-Volume -DriveLetter E -FileSystem exFAT -NewFileSystemLabel PENDRIVEAI</code></pre>
+<pre><code class="lang-powershell">Format-Volume -DriveLetter E -FileSystem exFAT -NewFileSystemLabel PENAI</code></pre>
 <p><code>diskpart</code> can also do this, but <code>Format-Volume</code> is preferred here because it acts on a volume already identified by letter rather than on a selected disk, which removes one whole class of mistake.</p>
 <h4 id="macos">macOS</h4>
-<p>Disk Utility: select the <strong>USB device</strong>, not just the volume underneath it, click <strong>Erase</strong>, set <strong>Format</strong> to <strong>ExFAT</strong> and <strong>Scheme</strong> to <strong>Master Boot Record</strong>, and name it <code>PENDRIVEAI</code>.</p>
-<p>macOS appears here only as a machine that can prepare a drive. <strong>PendriveAI v1 ships no macOS runtime</strong>, and the memory probe returns unknown on macOS.</p>
+<p>Disk Utility: select the <strong>USB device</strong>, not just the volume underneath it, click <strong>Erase</strong>, set <strong>Format</strong> to <strong>ExFAT</strong> and <strong>Scheme</strong> to <strong>Master Boot Record</strong>, and name it <code>PENAI</code>.</p>
+<p>macOS appears here only as a machine that can prepare a drive. <strong>PenAI v1 ships no macOS runtime</strong>, and the memory probe returns unknown on macOS.</p>
 <h4 id="staying-on-fat32">Staying on FAT32</h4>
 <p>FAT32 remains supported, with two consequences that follow from the measurements above.</p>
 <p><strong>Linux must use the staging bootstrap.</strong></p>
 <pre><code class="lang-bash">sh StartAI.sh        # instead of ./StartAI</code></pre>
-<p><code>StartAI.sh</code> copies the launcher and the llama.cpp runtime into a local temporary directory where execution is permitted, marks them executable, and sets <code>PENDRIVEAI_ROOT</code> back to the pendrive so the model, the web assets and the config are still read from the drive. Roughly 45 MB is copied to local disk on first run, and the 2.50 GB model is never copied. <strong>This bootstrap has not been tested end to end.</strong></p>
+<p><code>StartAI.sh</code> copies the launcher and the llama.cpp runtime into a local temporary directory where execution is permitted, marks them executable, and sets <code>PENAI_ROOT</code> back to the pendrive so the model, the web assets and the config are still read from the drive. Roughly 45 MB is copied to local disk on first run, and the 2.50 GB model is never copied. <strong>This bootstrap has not been tested end to end.</strong></p>
 <p><strong>Windows is unaffected on FAT32</strong>, because <code>.exe</code> executes normally there.</p>
 <p><strong>The 4 GiB cap constrains the model.</strong> Q4_K_M at 2.50 GB fits FAT32 comfortably, which is one of the reasons it was chosen. Q8_0 at 4.28 GB cannot be stored on FAT32 at all and requires exFAT.</p>
 <h3 id="scripts">Scripts</h3>
@@ -569,12 +569,12 @@ Get-Partition -DiskNumber &lt;n&gt;</code></pre>
 <h3 id="case-insensitivity">Case insensitivity</h3>
 <p>The test drive is case-insensitive. <code>StartAI</code> and <code>startai</code> are the same name there, so no two shipped files may differ only in case.</p>
 <h3 id="release-layout">Release layout</h3>
-<pre><code>PendriveAI/
+<pre><code>PenAI/
 ├── StartAI                  Linux launcher (native ELF)
 ├── StartAI.sh               Linux bootstrap for FAT32 / noexec mounts (sh StartAI.sh)
 ├── StartAI.exe              Windows launcher (build on Windows; not built here)
 ├── StartAI.bat              Windows zero-compile fallback launcher
-├── .pendriveai-root         root marker used for path discovery
+├── .penai-root         root marker used for path discovery
 ├── runtime/
 │   ├── linux/               llama-server + trimmed .so set
 │   └── windows/             llama-server.exe + trimmed .dll set
@@ -588,7 +588,7 @@ Get-Partition -DiskNumber &lt;n&gt;</code></pre>
 │   ├── chats/               portable chat history (chats.json)
 │   └── logs/                rotating logs
 └── README.md</code></pre>
-<p><code>.pendriveai-root</code> is a zero-content marker whose only job is to make root discovery deterministic (section 3). Deleting it forces the slower structural detection path.</p>
+<p><code>.penai-root</code> is a zero-content marker whose only job is to make root discovery deterministic (section 3). Deleting it forces the slower structural detection path.</p>
 <hr>
 <h2 id="11-the-8-gb-storage-budget">11. The 8 GB storage budget</h2>
 <div class="tablewrap"><table><thead><tr>
@@ -610,7 +610,7 @@ Get-Partition -DiskNumber &lt;n&gt;</code></pre>
 <li><strong>Headroom.</strong> Filling a drive to 95 percent leaves nowhere for logs, chat history or a second model later.</li>
 </ul>
 <p>Log growth is bounded by design rather than by hope: rotation is size-based at 2 MiB per file with 3 generations kept, across three files, so logs cannot silently consume the free space.</p>
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

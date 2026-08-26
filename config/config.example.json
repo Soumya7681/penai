@@ -1,6 +1,6 @@
 {
   "_readme": [
-    "PendriveAI configuration. Copy this file to config/config.json (the packaging",
+    "PenAI configuration. Copy this file to config/config.json (the packaging",
     "script does that for you) and edit it. JSON has no comment syntax, so every",
     "field is documented in this _readme array. The launcher ignores _readme.",
     "Any key you leave out keeps the default shown below. A malformed value is",
@@ -94,6 +94,6 @@
     "temperature": 0.7,
     "topP": 0.95,
     "maxTokens": 1024,
-    "systemPrompt": "You are PendriveAI, a helpful offline assistant running entirely on the user's own computer. Be concise and correct. When you write code, use fenced code blocks with a language tag."
+    "systemPrompt": "You are PenAI, a helpful offline assistant running entirely on the user's own computer. Be concise and correct. When you write code, use fenced code blocks with a language tag."
   }
 }

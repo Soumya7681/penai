@@ -1,9 +1,9 @@
 [package]
-name = "pendriveai-launcher"
+name = "penai-launcher"
 version = "1.0.0"
 edition = "2021"
 rust-version = "1.70"
-description = "Portable offline launcher for PendriveAI (llama.cpp + browser UI)"
+description = "Portable offline launcher for PenAI (llama.cpp + browser UI)"
 license = "MIT"
 
 # NO EXTERNAL DEPENDENCIES.

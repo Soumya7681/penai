@@ -59,7 +59,7 @@ pub fn http_get(port: u16, path: &str, timeout: Duration) -> std::io::Result<Res
     // `Connection: close` keeps the reply framing trivial: read until EOF.
     let req = format!(
         "GET {} HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nAccept: application/json\r\n\
-         User-Agent: PendriveAI-Launcher\r\nConnection: close\r\n\r\n",
+         User-Agent: PenAI-Launcher\r\nConnection: close\r\n\r\n",
         path, port
     );
     s.write_all(req.as_bytes())?;

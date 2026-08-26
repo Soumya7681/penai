@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-    Download and stage the llama.cpp Windows runtime for PendriveAI.
+    Download and stage the llama.cpp Windows runtime for PenAI.
 
 .DESCRIPTION
     Windows PowerShell equivalent of scripts/fetch-runtime.sh, for the windows
     platform only. Downloads the official prebuilt llama.cpp Windows CPU build
-    into vendor\, then copies ONLY the files PendriveAI needs into
+    into vendor\, then copies ONLY the files PenAI needs into
     runtime\windows\.
 
     All 15 ggml-cpu-*.dll variants are kept on purpose: llama.cpp loads the one
@@ -95,7 +95,7 @@ $VendorDir  = Join-Path $Root 'vendor'
 $Archive    = Join-Path $VendorDir $Asset
 $RuntimeDir = Join-Path $Root 'runtime\windows'
 
-Say 'PendriveAI runtime fetcher (Windows)'
+Say 'PenAI runtime fetcher (Windows)'
 Say "  repo root: $Root"
 Say "  platform:  windows"
 Say "  tag:       $Tag"
@@ -154,7 +154,7 @@ Verify the asset name for tag '$Tag' at
 }
 
 # ---- extract ----------------------------------------------------------------
-$Temp = Join-Path ([System.IO.Path]::GetTempPath()) ("pendriveai-runtime-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8))
+$Temp = Join-Path ([System.IO.Path]::GetTempPath()) ("penai-runtime-" + [System.Guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Force -Path $Temp | Out-Null
 try {
     Step "Extracting to $Temp"

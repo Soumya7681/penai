@@ -4,7 +4,7 @@
 //! the running executable. There are no drive letters, no `$HOME`, no mount
 //! points and no absolute project paths anywhere in this file or anywhere else
 //! in the launcher -- that is what makes the same release folder work from
-//! `D:\PendriveAI`, `/media/<user>/PENDRIVEAI` or `/run/media/<user>/x`.
+//! `D:\PenAI`, `/media/<user>/PENAI` or `/run/media/<user>/x`.
 
 use std::fs;
 use std::io;
@@ -13,13 +13,18 @@ use std::path::{Path, PathBuf};
 /// Marker file written into the release root by the packaging script. Searching
 /// for it lets the launcher find the root even if it is invoked from a `bin/`
 /// subdirectory or through a staging copy.
-pub const ROOT_MARKER: &str = ".pendriveai-root";
+pub const ROOT_MARKER: &str = ".penai-root";
+
+/// The marker this project used when it was called PendriveAI. A drive packaged
+/// before the rename still carries it, and such a drive must keep starting, so
+/// root discovery accepts either name.
+pub const ROOT_MARKER_LEGACY: &str = ".pendriveai-root";
 
 /// Environment override, used by the FAT32 staging bootstrap: the launcher
 /// binary is copied to a local temp directory (because FAT32 mounted with
 /// `showexec` refuses to execute it) but must still read the model, web assets
 /// and config from the pendrive.
-pub const ROOT_ENV: &str = "PENDRIVEAI_ROOT";
+pub const ROOT_ENV: &str = "PENAI_ROOT";
 
 /// Overrides *only* the llama.cpp runtime directory, leaving the project root
 /// on the pendrive.
@@ -30,7 +35,7 @@ pub const ROOT_ENV: &str = "PENDRIVEAI_ROOT";
 /// model, web assets, config and data. Without this, the launcher would derive
 /// the runtime path from the root and try to execute the copy on the drive that
 /// refuses execution.
-pub const RUNTIME_DIR_ENV: &str = "PENDRIVEAI_RUNTIME_DIR";
+pub const RUNTIME_DIR_ENV: &str = "PENAI_RUNTIME_DIR";
 
 /// Directory name under `runtime/` for the current platform.
 pub const fn platform_dir() -> &'static str {
@@ -92,8 +97,8 @@ impl Layout {
 
     /// Discover the project root from the running executable, then build the
     /// layout. Resolution order:
-    ///   1. `PENDRIVEAI_ROOT` (staging bootstrap / tests)
-    ///   2. nearest ancestor of the executable containing `.pendriveai-root`
+    ///   1. `PENAI_ROOT` (staging bootstrap / tests)
+    ///   2. nearest ancestor of the executable containing `.penai-root`
     ///   3. nearest ancestor that *looks* like a release root
     ///   4. the executable's own directory
     pub fn discover() -> io::Result<Layout> {
@@ -123,7 +128,7 @@ impl Layout {
         self
     }
 
-    /// Apply `PENDRIVEAI_RUNTIME_DIR` if it is set and non-empty.
+    /// Apply `PENAI_RUNTIME_DIR` if it is set and non-empty.
     pub fn apply_runtime_env(self) -> Layout {
         match std::env::var_os(RUNTIME_DIR_ENV) {
             Some(v) if !v.is_empty() => self.with_runtime_dir(PathBuf::from(v)),
@@ -250,7 +255,7 @@ fn find_root(start: &Path) -> PathBuf {
     let mut cur = Some(start);
     let mut depth = 0;
     while let Some(dir) = cur {
-        if dir.join(ROOT_MARKER).is_file() {
+        if dir.join(ROOT_MARKER).is_file() || dir.join(ROOT_MARKER_LEGACY).is_file() {
             return dir.to_path_buf();
         }
         if depth >= 4 {
@@ -308,7 +313,7 @@ mod tests {
     #[test]
     fn layout_is_relative_to_any_root() {
         for root in [
-            "/media/someone/PENDRIVEAI",
+            "/media/someone/PENAI",
             "/run/media/other-user/My Drive",
             "/tmp/x/y/z",
         ] {
@@ -328,8 +333,8 @@ mod tests {
 
     #[test]
     fn layout_handles_windows_style_root() {
-        let l = Layout::from_root("D:\\PendriveAI");
-        assert!(l.web_dir.to_string_lossy().contains("PendriveAI"));
+        let l = Layout::from_root("D:\\PenAI");
+        assert!(l.web_dir.to_string_lossy().contains("PenAI"));
         assert!(l.web_dir.to_string_lossy().ends_with("web"));
     }
 
@@ -418,17 +423,17 @@ mod tests {
 
     #[test]
     fn runtime_dir_override_moves_only_the_runtime() {
-        let l = Layout::from_root("/media/u/PENDRIVEAI").with_runtime_dir("/tmp/stage/runtime/linux");
+        let l = Layout::from_root("/media/u/PENAI").with_runtime_dir("/tmp/stage/runtime/linux");
         // The runtime moves to local disk...
         assert_eq!(l.runtime_dir, Path::new("/tmp/stage/runtime/linux"));
         assert_eq!(l.server_bin, Path::new("/tmp/stage/runtime/linux").join(server_exe_name()));
         // ...while everything the drive owns stays on the drive.
-        assert_eq!(l.models_dir, Path::new("/media/u/PENDRIVEAI/models"));
-        assert_eq!(l.web_dir, Path::new("/media/u/PENDRIVEAI/web"));
-        assert_eq!(l.logs_dir, Path::new("/media/u/PENDRIVEAI/data/logs"));
-        assert_eq!(l.chats_dir, Path::new("/media/u/PENDRIVEAI/data/chats"));
-        assert_eq!(l.config_file, Path::new("/media/u/PENDRIVEAI/config/config.json"));
-        assert_eq!(l.root, Path::new("/media/u/PENDRIVEAI"));
+        assert_eq!(l.models_dir, Path::new("/media/u/PENAI/models"));
+        assert_eq!(l.web_dir, Path::new("/media/u/PENAI/web"));
+        assert_eq!(l.logs_dir, Path::new("/media/u/PENAI/data/logs"));
+        assert_eq!(l.chats_dir, Path::new("/media/u/PENAI/data/chats"));
+        assert_eq!(l.config_file, Path::new("/media/u/PENAI/config/config.json"));
+        assert_eq!(l.root, Path::new("/media/u/PENAI"));
     }
 
     #[test]

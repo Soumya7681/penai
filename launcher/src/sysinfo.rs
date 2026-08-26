@@ -220,7 +220,7 @@ fn probe_memory() -> (Option<u64>, Option<u64>) {
 
 #[cfg(not(any(target_os = "linux", windows)))]
 fn probe_memory() -> (Option<u64>, Option<u64>) {
-    // macOS/BSD would need sysctl; PendriveAI v1 does not ship a macOS runtime,
+    // macOS/BSD would need sysctl; PenAI v1 does not ship a macOS runtime,
     // so report unknown rather than guessing.
     (None, None)
 }

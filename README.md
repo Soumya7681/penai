@@ -2,7 +2,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
-  <img src="assets/logo.svg" alt="PendriveAI" width="440">
+  <img src="assets/logo.svg" alt="PenAI" width="330">
 </picture>
 
 **A full local-LLM chat system that lives on an 8 GB USB pendrive.**
@@ -18,7 +18,7 @@ No installation, no internet, no admin rights, no Node.js, no Python, no Docker,
 
 <br>
 
-<img src="docs/images/app-dark.png" alt="The PendriveAI chat interface" width="820">
+<img src="docs/images/app-dark.png" alt="The PenAI chat interface" width="820">
 
 </div>
 
@@ -43,7 +43,7 @@ prepared, no network dependency of any kind.
 
 ```bash
 # Linux
-/media/you/PENDRIVEAI/StartAI
+/media/you/PENAI/StartAI
 
 # Windows: double-click StartAI.exe, or StartAI.bat if the .exe is absent
 ```
@@ -51,7 +51,7 @@ prepared, no network dependency of any kind.
 **You are building one from this repo:**
 
 ```bash
-./scripts/build-all.sh --target /media/you/PENDRIVEAI
+./scripts/build-all.sh --target /media/you/PENAI
 ```
 
 That is the whole build. It fetches the llama.cpp runtimes, builds the web UI,
@@ -78,7 +78,7 @@ nothing to repeat, and a UI-only change rebuilds only the UI.
 | **Keyboard-first** | Enter sends, Shift+Enter adds a line, Escape closes dialogs, and every control is reachable by tab. |
 
 <div align="center">
-<img src="docs/images/app-light.png" alt="PendriveAI in the light theme" width="820">
+<img src="docs/images/app-light.png" alt="PenAI in the light theme" width="820">
 </div>
 
 ## Documentation
@@ -94,7 +94,7 @@ Full documentation lives in [`docs/`](docs/README.md).
 | [Preparing the pendrive](docs/PENDRIVE.md) | You have a blank drive to format and load. |
 | [Building a release](docs/BUILD.md) | You are building from source. |
 | [Development setup](docs/DEVELOPMENT.md) | You are changing the code. |
-| [Running PendriveAI](docs/USAGE.md) | You have a drive and want to start it. |
+| [Running PenAI](docs/USAGE.md) | You have a drive and want to start it. |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Something did not work. |
 | [Privacy and security](docs/PRIVACY.md) | You need to explain what leaves the machine. |
 | [Known limitations](docs/LIMITATIONS.md) | You are wondering if something is missing on purpose. |

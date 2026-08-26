@@ -62,7 +62,7 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-say "PendriveAI Windows cross-build (from Linux)"
+say "PenAI Windows cross-build (from Linux)"
 say "  repo root: $ROOT"
 say "  target:    $TARGET_TRIPLE"
 
@@ -122,9 +122,9 @@ if [ "$MISSING" -ne 0 ]; then
 fi
 
 # --------------------------------------------------------- build directories ---
-SCRATCH_ROOT="${PENDRIVEAI_SCRATCH_DIR:-${TMPDIR:-/tmp}/pendriveai-build}"
-if [ -n "${PENDRIVEAI_CARGO_TARGET_DIR:-}" ]; then
-  TARGET_DIR="$PENDRIVEAI_CARGO_TARGET_DIR"
+SCRATCH_ROOT="${PENAI_SCRATCH_DIR:-${TMPDIR:-/tmp}/penai-build}"
+if [ -n "${PENAI_CARGO_TARGET_DIR:-}" ]; then
+  TARGET_DIR="$PENAI_CARGO_TARGET_DIR"
 elif [ -n "${CARGO_TARGET_DIR:-}" ]; then
   TARGET_DIR="$CARGO_TARGET_DIR"
 else
@@ -135,7 +135,7 @@ export CARGO_TARGET_DIR="$TARGET_DIR"
 say ""
 say "cargo target dir: $CARGO_TARGET_DIR"
 say "  (kept off the repo filesystem: a FAT32/exFAT USB drive cannot host a"
-say "   Rust build cache. Override with PENDRIVEAI_CARGO_TARGET_DIR.)"
+say "   Rust build cache. Override with PENAI_CARGO_TARGET_DIR.)"
 
 # ---------------------------------------------------------------- build -------
 MANIFEST="$ROOT/launcher/Cargo.toml"
@@ -166,7 +166,7 @@ fi
 # a scratch build when node_modules cannot be created there at all.
 build_web() {
   local -a flags=()
-  local probe="$ROOT/web/.pendriveai-symlink-test.$$"
+  local probe="$ROOT/web/.penai-symlink-test.$$"
   rm -f "$probe" 2>/dev/null || true
   if ln -s . "$probe" 2>/dev/null; then
     rm -f "$probe" 2>/dev/null || true
@@ -177,7 +177,7 @@ build_web() {
     flags+=(--no-bin-links)
   fi
 
-  local nm_probe="$ROOT/web/node_modules/.pendriveai-write-test.$$"
+  local nm_probe="$ROOT/web/node_modules/.penai-write-test.$$"
   if mkdir -p "$(dirname "$nm_probe")" 2>/dev/null && : > "$nm_probe" 2>/dev/null; then
     rm -f "$nm_probe" 2>/dev/null || true
     if [ -f "$ROOT/web/package-lock.json" ]; then
@@ -251,7 +251,7 @@ step "Packaging the Windows release"
 "$SCRIPT_DIR/package.sh" --platform windows ${PKG_ARGS[@]+"${PKG_ARGS[@]}"}
 
 step "Windows cross-build complete"
-say "Release: ${ROOT}/release/windows/PendriveAI (unless --out changed it)"
+say "Release: ${ROOT}/release/windows/PenAI (unless --out changed it)"
 say ""
 say "READ THIS: StartAI.exe was CROSS-COMPILED on Linux with MinGW-w64 and has"
 say "NOT been tested on real Windows hardware. Before handing the drive to"

@@ -63,7 +63,7 @@ export function Sidebar({
         <div className="brand">
           <BrandMark engine={engine} size={26} />
           <span>
-            <span className="brand-name">PendriveAI</span>
+            <span className="brand-name">PenAI</span>
             <span className="kicker brand-sub">local · offline</span>
           </span>
           <button

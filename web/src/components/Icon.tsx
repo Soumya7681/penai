@@ -25,6 +25,7 @@ export type IconName =
   | 'download'
   | 'upload'
   | 'panelLeft'
+  | 'paste'
 
 const PATHS: Record<IconName, ReactNode> = {
   menu: (
@@ -107,6 +108,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 20V9" />
       <path d="M7 13l5-5 5 5" />
       <path d="M5 4h14" />
+    </>
+  ),
+  paste: (
+    <>
+      <rect x="5" y="4.5" width="14" height="16" rx="2.5" />
+      <path d="M9 4.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 4.5v1H9z" />
+      <path d="M8.5 11h7M8.5 15h4.5" />
     </>
   ),
   panelLeft: (

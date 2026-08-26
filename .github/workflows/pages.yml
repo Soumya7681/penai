@@ -35,6 +35,7 @@ jobs:
       - name: Refresh the brand assets the site serves
         run: |
           cp assets/logo-dark.svg site/assets/logo.svg
+          cp assets/wordmark-dark.svg site/assets/wordmark.svg
           cp assets/mark-dark.svg site/assets/mark.svg
           cp docs/images/app-dark.png site/assets/app-dark.png
           cp docs/images/app-light.png site/assets/app-light.png

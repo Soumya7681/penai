@@ -1,6 +1,6 @@
 # Model setup
 
-This directory holds the GGUF model that PendriveAI runs. **The model file is not
+This directory holds the GGUF model that PenAI runs. **The model file is not
 in this repository and never will be.** You download it once, verify it, and copy
 it to the pendrive.
 
@@ -12,7 +12,7 @@ so you can do it by hand, or verify what the scripts did.
 
 ## The model
 
-PendriveAI v1 ships exactly one model.
+PenAI v1 ships exactly one model.
 
 | Field | Value |
 |---|---|
@@ -246,7 +246,7 @@ assume.
 
 ## Which models can I use?
 
-PendriveAI v1 ships exactly one model, and **the launcher loads exactly one model
+PenAI v1 ships exactly one model, and **the launcher loads exactly one model
 at a time**. There is no model picker in the UI, and no way to switch models
 without restarting. Swapping means replacing `models/model.gguf`, or setting
 `model.file` in `config/config.json`, and restarting the launcher.
@@ -260,7 +260,7 @@ A candidate model has to satisfy all five of these.
 | a | **GGUF format** | llama.cpp does not load `.safetensors`, `.bin` or PyTorch checkpoints. It must be a `.gguf` file |
 | b | **An architecture supported by the packaged llama.cpp build `b10549`** | A model whose architecture is newer than the bundled engine will simply fail to load. The engine on the drive is fixed at `b10549` |
 | c | **It must fit in RAM alongside the KV cache** | See the sizing rule below. The launcher checks this and will reduce the context or refuse |
-| d | **On FAT32, the single file must stay under 4 GiB** | A FAT32 filesystem limit, not a PendriveAI one. exFAT removes it |
+| d | **On FAT32, the single file must stay under 4 GiB** | A FAT32 filesystem limit, not a PenAI one. exFAT removes it |
 | e | **For chat use it must be instruct or chat-tuned** | A base or completion model will not follow a conversation. It will just continue your text, which looks like a broken chat UI but is the model behaving correctly |
 
 ### What we actually tested
@@ -397,7 +397,7 @@ model is a download step, not a source artefact.
 On the pendrive:
 
 ```
-PendriveAI/
+PenAI/
 └── models/
     ├── model.gguf      2.50 GB
     └── README.md

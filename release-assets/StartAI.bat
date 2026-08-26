@@ -1,6 +1,6 @@
 @echo off
 rem ===========================================================================
-rem  StartAI.bat - Windows zero-compile launcher for PendriveAI.
+rem  StartAI.bat - Windows zero-compile launcher for PenAI.
 rem
 rem  WHY THIS EXISTS
 rem    StartAI.exe is the real launcher, but building it needs a Rust toolchain
@@ -34,13 +34,13 @@ rem    apply.
 rem ===========================================================================
 
 setlocal
-set "PENDRIVEAI_BAT_SELF=%~f0"
+set "PENAI_BAT_SELF=%~f0"
 
 where powershell.exe >nul 2>&1
 if errorlevel 1 (
     echo.
     echo ERROR: powershell.exe was not found on this computer.
-    echo   PendriveAI's fallback launcher is written in PowerShell, which ships
+    echo   PenAI's fallback launcher is written in PowerShell, which ships
     echo   with Windows 7 and later. If PowerShell has been removed or blocked,
     echo   use StartAI.exe instead ^(see README.md section 10 for how to build it^).
     echo.
@@ -48,17 +48,17 @@ if errorlevel 1 (
     exit /b 1
 )
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $t=[IO.File]::ReadAllText($env:PENDRIVEAI_BAT_SELF); $i=$t.LastIndexOf('#@PSBEGIN@'); if($i -lt 0){ Write-Host 'ERROR: StartAI.bat is damaged (no script section). Re-copy it from the release.'; exit 1 }; Invoke-Expression $t.Substring($i+10)"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $t=[IO.File]::ReadAllText($env:PENAI_BAT_SELF); $i=$t.LastIndexOf('#@PSBEGIN@'); if($i -lt 0){ Write-Host 'ERROR: StartAI.bat is damaged (no script section). Re-copy it from the release.'; exit 1 }; Invoke-Expression $t.Substring($i+10)"
 
-set "PENDRIVEAI_EXIT=%ERRORLEVEL%"
+set "PENAI_EXIT=%ERRORLEVEL%"
 
-if not "%PENDRIVEAI_EXIT%"=="0" (
+if not "%PENAI_EXIT%"=="0" (
     echo.
-    echo PendriveAI stopped with exit code %PENDRIVEAI_EXIT%. The reason is above.
+    echo PenAI stopped with exit code %PENAI_EXIT%. The reason is above.
     pause
 )
 
-endlocal & exit /b %PENDRIVEAI_EXIT%
+endlocal & exit /b %PENAI_EXIT%
 
 #@PSBEGIN@
 # --------------------------------------------------------------------------
@@ -79,7 +79,7 @@ if ($PSVersionTable.PSVersion.Major -lt 3) {
     exit 1
 }
 
-$Self = $env:PENDRIVEAI_BAT_SELF
+$Self = $env:PENAI_BAT_SELF
 $Root = Split-Path -Parent $Self
 
 function Say  ([string]$m) { Write-Host $m }
@@ -92,7 +92,7 @@ function Fail ([string]$m) {
     exit 1
 }
 
-Say 'PendriveAI (Windows fallback launcher)'
+Say 'PenAI (Windows fallback launcher)'
 Say ('  drive root: ' + $Root)
 Say ''
 
@@ -162,7 +162,7 @@ $secLlama  = CfgSec 'llama'
 $secLaunch = CfgSec 'launcher'
 $secUi     = CfgSec 'ui'
 
-$DefaultSystemPrompt = 'You are PendriveAI, a helpful offline assistant running entirely on the ' +
+$DefaultSystemPrompt = 'You are PenAI, a helpful offline assistant running entirely on the ' +
                        "user's own computer. Be concise and correct. When you write code, use " +
                        'fenced code blocks with a language tag.'
 
@@ -556,7 +556,7 @@ try {
     # ------------------------------------------------------------ browser ----
     Say ''
     Say '  ----------------------------------------'
-    Say ('  PendriveAI is ready at  ' + $base)
+    Say ('  PenAI is ready at  ' + $base)
     Say '  ----------------------------------------'
     Say ''
 
@@ -575,7 +575,7 @@ try {
     Say '  Chats are kept in this browser''s own storage on this computer.'
     Say '  They do NOT travel with the drive: that needs StartAI.exe.'
     Say ''
-    Say '  Press Ctrl+C in this window, or close it, to stop PendriveAI.'
+    Say '  Press Ctrl+C in this window, or close it, to stop PenAI.'
     Say ''
 
     # ---------------------------------------------------------- supervise ----

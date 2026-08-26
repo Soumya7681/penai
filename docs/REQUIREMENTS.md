@@ -21,14 +21,14 @@ and require glibc 2.34 or newer. That covers Ubuntu 22.04 and later, Debian 12
 and later, and Fedora 35 and later. Older distributions will not run them.
 The Linux binaries carry `RUNPATH=$ORIGIN`, so no `LD_LIBRARY_PATH` is needed.
 
-**iOS and iPadOS cannot run PendriveAI.** This is not a missing feature, it is a
+**iOS and iPadOS cannot run PenAI.** This is not a missing feature, it is a
 platform rule. iOS does not let a user execute an arbitrary native binary from
 external storage: apps must be installed through the App Store or a provisioning
 profile, they are sandboxed, and they cannot spawn child processes. The Files app
 can read a USB drive but it cannot execute anything on it. There is therefore no
 way to run `llama-server` from a pendrive on iOS. The realistic alternatives,
 neither of which is promised here, are a native iOS app that embeds llama.cpp
-with its own model copied into the app sandbox, or running PendriveAI on a
+with its own model copied into the app sandbox, or running PenAI on a
 computer and reaching it from the iPad over the LAN. The second would require
 binding beyond loopback, which v1 deliberately does not support.
 
@@ -57,7 +57,7 @@ so the f16 KV cache costs `2 * 36 * 8 * 128 * 2 = 147,456` bytes per token,
 which is 144 KiB per token. At a context of 4096 that is roughly 0.6 GiB of KV
 cache on top of the 2.50 GB of weights, plus about 400 MiB of buffers. The
 launcher does this estimate before starting anything and reacts to the result
-(see [Starting PendriveAI](USAGE.md#starting-pendriveai)).
+(see [Starting PenAI](USAGE.md#starting-penai)).
 
 ## 8 GB storage requirements
 

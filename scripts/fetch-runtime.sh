@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# fetch-runtime.sh - download and stage the llama.cpp runtime for PendriveAI.
+# fetch-runtime.sh - download and stage the llama.cpp runtime for PenAI.
 #
 # Downloads the official prebuilt llama.cpp release archive(s) into vendor/,
-# then copies ONLY the files PendriveAI actually needs into runtime/linux/ and
+# then copies ONLY the files PenAI actually needs into runtime/linux/ and
 # runtime/windows/. Everything else in the archive (other CLI tools, headers,
 # import libraries) is dropped, which is what keeps the drive small.
 #
@@ -297,7 +297,7 @@ fetch_linux() {
   download "$url" "$archive"
 
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/pendriveai-runtime-linux.XXXXXX")"
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/penai-runtime-linux.XXXXXX")"
   # shellcheck disable=SC2064
   trap "rm -rf '$tmp'" RETURN
 
@@ -327,7 +327,7 @@ fetch_windows() {
   download "$url" "$archive"
 
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/pendriveai-runtime-windows.XXXXXX")"
+  tmp="$(mktemp -d "${TMPDIR:-/tmp}/penai-runtime-windows.XXXXXX")"
   # shellcheck disable=SC2064
   trap "rm -rf '$tmp'" RETURN
 
@@ -367,7 +367,7 @@ case "$PLATFORM" in
 esac
 [ -n "$TAG" ] || die "--tag must not be empty"
 
-say "PendriveAI runtime fetcher"
+say "PenAI runtime fetcher"
 say "  repo root: $ROOT"
 say "  platform:  $PLATFORM"
 say "  tag:       $TAG"

@@ -82,8 +82,8 @@ loopback, so the page cannot reach any remote host even if something tried.
 to a kill after a grace period. On Windows shutdown uses `TerminateProcess`, so
 **Windows shutdown is not graceful**.
 
-**What PendriveAI does not protect against, stated honestly.** Anything running
-as your user on the same computer can reach a loopback port. PendriveAI adds no
+**What PenAI does not protect against, stated honestly.** Anything running
+as your user on the same computer can reach a loopback port. PenAI adds no
 authentication, because putting a shared secret in a page served from the same
 origin buys very little. Do not run it on a shared or multi-user machine you do
 not trust.

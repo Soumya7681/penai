@@ -365,8 +365,8 @@ mod tests {
 
     fn spec() -> ServerArgs {
         ServerArgs {
-            model: OsString::from("/media/u/My Drive/PendriveAI/models/model.gguf"),
-            web_dir: OsString::from("/media/u/My Drive/PendriveAI/web"),
+            model: OsString::from("/media/u/My Drive/PenAI/models/model.gguf"),
+            web_dir: OsString::from("/media/u/My Drive/PenAI/web"),
             port: 8080,
             ctx_size: 4096,
             threads: 6,
@@ -421,7 +421,7 @@ mod tests {
             .position(|x| x == "--model")
             .map(|i| a[i + 1].to_string_lossy().to_string())
             .unwrap();
-        assert_eq!(model, "/media/u/My Drive/PendriveAI/models/model.gguf");
+        assert_eq!(model, "/media/u/My Drive/PenAI/models/model.gguf");
         assert!(model.contains(' '), "the space must survive unquoted");
         // No argument may be a concatenated command line.
         for arg in as_strings(&a) {

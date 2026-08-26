@@ -1,14 +1,14 @@
 # Overview
 
-What PendriveAI is, how the pieces fit together, and what it can do.
+What PenAI is, how the pieces fit together, and what it can do.
 
 [← All documentation](README.md) · [Project home](../README.md)
 
 ---
 
-## What PendriveAI is
+## What PenAI is
 
-PendriveAI is a self-contained AI chat system that lives on a USB pendrive.
+PenAI is a self-contained AI chat system that lives on a USB pendrive.
 There is no desktop application and no installer. The drive carries three things:
 
 1. A CPU build of **llama.cpp** (the `llama-server` HTTP server).

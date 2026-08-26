@@ -1,18 +1,18 @@
 <#
 .SYNOPSIS
-    Full Windows release build for PendriveAI, run ON Windows.
+    Full Windows release build for PenAI, run ON Windows.
 
 .DESCRIPTION
     Steps: check tools -> run the launcher tests -> build StartAI.exe with the
     MSVC toolchain -> build the React UI -> check the llama.cpp Windows runtime
-    is staged -> assemble release\windows\PendriveAI with exactly the same
+    is staged -> assemble release\windows\PenAI with exactly the same
     layout that scripts/package.sh produces on Linux.
 
     The cargo target directory defaults to a scratch directory outside the
     repository, because this repository is designed to live on a USB drive and a
     FAT32/exFAT filesystem is a poor host for a Rust build cache (hundreds of
     thousands of small files, no hard links). Override it with the environment
-    variable PENDRIVEAI_CARGO_TARGET_DIR.
+    variable PENAI_CARGO_TARGET_DIR.
 
     Prerequisites:
       * Rust with the MSVC toolchain (https://rustup.rs) plus the
@@ -31,14 +31,14 @@
     Path to a .gguf file to copy into the release as models\model.gguf.
 
 .PARAMETER Version
-    Version string for .pendriveai-root. Defaults to the version in
+    Version string for .penai-root. Defaults to the version in
     launcher\Cargo.toml.
 
 .PARAMETER Out
     Output directory. Default: <repo>\release
 
 .PARAMETER Force
-    Overwrite a non-empty release\windows\PendriveAI directory.
+    Overwrite a non-empty release\windows\PenAI directory.
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts\build-windows.ps1
@@ -103,7 +103,7 @@ if ($PSVersionTable.PSVersion.Major -lt 5) {
     Die "PowerShell 5 or newer is required (this is $($PSVersionTable.PSVersion))."
 }
 
-Say 'PendriveAI Windows build'
+Say 'PenAI Windows build'
 Say "  repo root: $Root"
 
 # ------------------------------------------------------------- tool checks -----
@@ -134,9 +134,9 @@ npm), open a new terminal and retry. If web\dist is already built you can pass
 }
 
 # ---------------------------------------------------------- build directory ----
-$scratchRoot = if ($env:PENDRIVEAI_SCRATCH_DIR) { $env:PENDRIVEAI_SCRATCH_DIR } else { Join-Path $env:TEMP 'pendriveai-build' }
-$targetDir = if ($env:PENDRIVEAI_CARGO_TARGET_DIR) {
-    $env:PENDRIVEAI_CARGO_TARGET_DIR
+$scratchRoot = if ($env:PENAI_SCRATCH_DIR) { $env:PENAI_SCRATCH_DIR } else { Join-Path $env:TEMP 'penai-build' }
+$targetDir = if ($env:PENAI_CARGO_TARGET_DIR) {
+    $env:PENAI_CARGO_TARGET_DIR
 } elseif ($env:CARGO_TARGET_DIR) {
     $env:CARGO_TARGET_DIR
 } else {
@@ -148,7 +148,7 @@ $env:CARGO_TARGET_DIR = $targetDir
 Step 'Build directories'
 Say "cargo target dir: $targetDir"
 Say '  Reason: the repo may live on a FAT32/exFAT USB drive, which is a bad host'
-Say '  for a Rust build cache. Override with PENDRIVEAI_CARGO_TARGET_DIR.'
+Say '  for a Rust build cache. Override with PENAI_CARGO_TARGET_DIR.'
 Say "scratch root:     $scratchRoot"
 
 $manifest = Join-Path $Root 'launcher\Cargo.toml'
@@ -254,7 +254,7 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
     $line = Select-String -LiteralPath $manifest -Pattern '^version\s*=\s*"([^"]+)"' | Select-Object -First 1
     if ($line) { $Version = $line.Matches[0].Groups[1].Value } else { $Version = '0.0.0-unknown' }
 }
-$dest = Join-Path $Out 'windows\PendriveAI'
+$dest = Join-Path $Out 'windows\PenAI'
 $stamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 
 Step "Assembling $dest"
@@ -307,12 +307,12 @@ if (Test-Path -LiteralPath $modelsReadmeSrc) {
 } else {
     Warn 'models\README.md is missing from the repo; writing a minimal one into the release.'
     $mr = @"
-# PendriveAI model directory
+# PenAI model directory
 
 Put a GGUF model file here. The launcher uses ``model.gguf`` if it exists,
 otherwise the largest ``.gguf`` file in this directory.
 
-Reference model used by PendriveAI:
+Reference model used by PenAI:
 
 - repository: unsloth/Qwen3-4B-Instruct-2507-GGUF
 - file: $ModelFileName
@@ -335,7 +335,7 @@ if (Test-Path -LiteralPath $readmeSrc) {
 } else {
     Warn 'README.md is missing from the repo root; writing a minimal one into the release.'
     $rr = @"
-# PendriveAI $Version
+# PenAI $Version
 
 A fully offline AI assistant that runs from this drive. Nothing is sent to the
 internet: the model, the llama.cpp server and the web UI all live in this folder
@@ -374,14 +374,14 @@ foreach ($d in @('data\chats', 'data\logs')) {
     Set-Content -LiteralPath (Join-Path $p '.gitkeep') -Value '' -Encoding ASCII
 }
 
-# .pendriveai-root marker
+# .penai-root marker
 $marker = @"
 $Version
 built: $stamp
 platform: windows
 packaged-by: scripts/build-windows.ps1
 "@
-Set-Content -LiteralPath (Join-Path $dest '.pendriveai-root') -Value $marker -Encoding ASCII
+Set-Content -LiteralPath (Join-Path $dest '.penai-root') -Value $marker -Encoding ASCII
 
 # optional model
 $modelIncluded = $false
@@ -452,5 +452,5 @@ if (-not $modelIncluded) {
 
 Step 'Windows build complete'
 Say "Release: $dest"
-Say 'Copy that PendriveAI folder to the root of your USB drive, then run'
+Say 'Copy that PenAI folder to the root of your USB drive, then run'
 Say 'StartAI.exe from the drive (or StartAI.bat as a fallback).'

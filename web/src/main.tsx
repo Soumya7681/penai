@@ -5,7 +5,7 @@ import './styles.css'
 
 const el = document.getElementById('root')
 if (!el) {
-  throw new Error('PendriveAI: #root is missing from index.html')
+  throw new Error('PenAI: #root is missing from index.html')
 }
 
 createRoot(el).render(

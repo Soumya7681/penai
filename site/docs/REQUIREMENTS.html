@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Requirements - PendriveAI docs</title>
+<title>Requirements - PenAI docs</title>
 <meta name="description" content="Requirements
 Platforms, hardware, and the storage budget for an 8 GB drive.">
 <link rel="icon" href="../assets/mark.svg">
@@ -12,7 +12,7 @@ Platforms, hardware, and the storage budget for an 8 GB drive.">
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -33,7 +33,7 @@ Platforms, hardware, and the storage budget for an 8 GB drive.">
 <a href="BUILD.html">Building a release</a>
 <a href="DEVELOPMENT.html">Development setup</a>
 <span class="kicker">Live with it</span>
-<a href="USAGE.html">Running PendriveAI</a>
+<a href="USAGE.html">Running PenAI</a>
 <a href="TROUBLESHOOTING.html">Troubleshooting</a>
 <a href="LIMITATIONS.html">Known limitations</a>
 <a href="PRIVACY.html">Privacy and security</a>
@@ -57,7 +57,7 @@ Platforms, hardware, and the storage budget for an 8 GB drive.">
 <tr><td>iOS / iPadOS</td><td>Cannot work. See below</td></tr>
 </tbody></table></div>
 <p><strong>glibc requirement.</strong> The prebuilt Linux binaries were checked with <code>objdump</code> and require glibc 2.34 or newer. That covers Ubuntu 22.04 and later, Debian 12 and later, and Fedora 35 and later. Older distributions will not run them. The Linux binaries carry <code>RUNPATH=$ORIGIN</code>, so no <code>LD_LIBRARY_PATH</code> is needed.</p>
-<p><strong>iOS and iPadOS cannot run PendriveAI.</strong> This is not a missing feature, it is a platform rule. iOS does not let a user execute an arbitrary native binary from external storage: apps must be installed through the App Store or a provisioning profile, they are sandboxed, and they cannot spawn child processes. The Files app can read a USB drive but it cannot execute anything on it. There is therefore no way to run <code>llama-server</code> from a pendrive on iOS. The realistic alternatives, neither of which is promised here, are a native iOS app that embeds llama.cpp with its own model copied into the app sandbox, or running PendriveAI on a computer and reaching it from the iPad over the LAN. The second would require binding beyond loopback, which v1 deliberately does not support.</p>
+<p><strong>iOS and iPadOS cannot run PenAI.</strong> This is not a missing feature, it is a platform rule. iOS does not let a user execute an arbitrary native binary from external storage: apps must be installed through the App Store or a provisioning profile, they are sandboxed, and they cannot spawn child processes. The Files app can read a USB drive but it cannot execute anything on it. There is therefore no way to run <code>llama-server</code> from a pendrive on iOS. The realistic alternatives, neither of which is promised here, are a native iOS app that embeds llama.cpp with its own model copied into the app sandbox, or running PenAI on a computer and reaching it from the iPad over the LAN. The second would require binding beyond loopback, which v1 deliberately does not support.</p>
 <h2 id="hardware-requirements">Hardware requirements</h2>
 <p><strong>Target computer (the machine you plug the drive into):</strong></p>
 <div class="tablewrap"><table><thead><tr>
@@ -72,7 +72,7 @@ Platforms, hardware, and the storage budget for an 8 GB drive.">
 </tbody></table></div>
 <p><strong>Not needed on the target computer:</strong> Node.js, Python, Docker, Ollama, an internet connection, admin rights, or any installation step.</p>
 <p><strong>Why 15 CPU variants matter.</strong> One drive has to work on an old office desktop and on a current laptop. The prebuilt llama.cpp release ships multiple builds selected at runtime by CPU feature detection, which is exactly the property that makes a single portable drive viable.</p>
-<p><strong>RAM arithmetic.</strong> The model has 36 layers, 8 KV heads (GQA) and head_dim 128, so the f16 KV cache costs <code>2 * 36 * 8 * 128 * 2 = 147,456</code> bytes per token, which is 144 KiB per token. At a context of 4096 that is roughly 0.6 GiB of KV cache on top of the 2.50 GB of weights, plus about 400 MiB of buffers. The launcher does this estimate before starting anything and reacts to the result (see <a href="USAGE.html#starting-pendriveai">Starting PendriveAI</a>).</p>
+<p><strong>RAM arithmetic.</strong> The model has 36 layers, 8 KV heads (GQA) and head_dim 128, so the f16 KV cache costs <code>2 * 36 * 8 * 128 * 2 = 147,456</code> bytes per token, which is 144 KiB per token. At a context of 4096 that is roughly 0.6 GiB of KV cache on top of the 2.50 GB of weights, plus about 400 MiB of buffers. The launcher does this estimate before starting anything and reacts to the result (see <a href="USAGE.html#starting-penai">Starting PenAI</a>).</p>
 <h2 id="8-gb-storage-requirements">8 GB storage requirements</h2>
 <div class="tablewrap"><table><thead><tr>
 <th>Item</th>
@@ -88,7 +88,7 @@ Platforms, hardware, and the storage budget for an 8 GB drive.">
 </tbody></table></div>
 <p>An 8 GB pendrive gives roughly 7.3 GB usable, which leaves about 4.7 GB free for chat data and future updates.</p>
 <p>For reference: the downloaded llama.cpp archives are 16.7 MB (Linux <code>llama-b10549-bin-ubuntu-x64.tar.gz</code>) and 18.6 MB (Windows <code>llama-b10549-bin-win-cpu-x64.zip</code>). Extracted they are 41 MB and 46 MB. After trimming to only the files <code>llama-server</code> actually needs, each platform folder is roughly 40 to 45 MB.</p>
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

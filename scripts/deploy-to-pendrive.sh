@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# deploy-to-pendrive.sh - copy a built PendriveAI release onto a drive.
+# deploy-to-pendrive.sh - copy a built PenAI release onto a drive.
 #
 # This script is deliberately conservative:
 #   * --target is mandatory. It never guesses a mount point, because guessing
@@ -9,7 +9,7 @@
 #     Files that are already there and are not part of the release stay.
 #   * It asks for a typed confirmation showing the exact destination path.
 #
-# Copying both platforms into the same PendriveAI/ folder is intentional: one
+# Copying both platforms into the same PenAI/ folder is intentional: one
 # drive then boots the assistant on Linux and on Windows.
 #
 # Usage:
@@ -45,7 +45,7 @@ Usage: scripts/deploy-to-pendrive.sh --target <mountpoint> [options]
                                   example /media/you/MYDRIVE or /run/media/you/x
   --platform linux|windows|both   Which release(s) to copy (default: whichever
                                   are present under ${RELEASE_DIR})
-  --model <path>                  Copy this .gguf to PendriveAI/models/model.gguf
+  --model <path>                  Copy this .gguf to PenAI/models/model.gguf
   --release <dir>                 Release directory (default: ${RELEASE_DIR})
   --yes                           Skip the typed confirmation
   -h, --help                      Show this help
@@ -184,8 +184,8 @@ esac
 [ -d "$RELEASE_DIR" ] || die "release directory not found: $RELEASE_DIR
     Build one first:  scripts/build-linux.sh   (or scripts/package.sh)"
 
-SRC_LINUX="$RELEASE_DIR/linux/PendriveAI"
-SRC_WINDOWS="$RELEASE_DIR/windows/PendriveAI"
+SRC_LINUX="$RELEASE_DIR/linux/PenAI"
+SRC_WINDOWS="$RELEASE_DIR/windows/PenAI"
 
 if [ -z "$PLATFORM" ]; then
   if [ -d "$SRC_LINUX" ] && [ -d "$SRC_WINDOWS" ]; then
@@ -219,7 +219,7 @@ for s in "${SOURCES[@]}"; do
   [ -d "$s" ] || die "release folder missing: $s
     Build it first (scripts/build-linux.sh, scripts/build-windows-cross.sh, or
     scripts/build-windows.ps1 on Windows)."
-  [ -f "$s/.pendriveai-root" ] || warn "$s has no .pendriveai-root marker; is it really a packaged release?"
+  [ -f "$s/.penai-root" ] || warn "$s has no .penai-root marker; is it really a packaged release?"
 done
 
 if [ -n "$MODEL" ]; then
@@ -274,7 +274,7 @@ if [ "$AVAIL" -lt "$NEED" ]; then
 fi
 
 # ---------------------------------------------------------- confirmation -------
-DEST="$TARGET_ABS/PendriveAI"
+DEST="$TARGET_ABS/PenAI"
 step "About to write"
 say "  from:  ${SOURCES[*]}"
 [ -n "$MODEL" ] && say "  model: $MODEL"

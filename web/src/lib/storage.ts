@@ -19,6 +19,8 @@
 
 import type { Chat, Message, StoreSnapshot } from './types'
 
+// Data identity, not a brand name. Renaming the database would orphan every
+// chat already stored in a browser, so it keeps the pre-rename value.
 const DB_NAME = 'pendriveai'
 const DB_VERSION = 1
 const CHATS = 'chats'
@@ -75,7 +77,7 @@ export async function readLocal(): Promise<StoreSnapshot> {
     db.close()
     return { version: 1, chats, messages }
   } catch (e) {
-    console.warn('[PendriveAI] IndexedDB unreadable:', e)
+    console.warn('[PenAI] IndexedDB unreadable:', e)
     return { version: 1, chats: [], messages: [] }
   }
 }
@@ -163,7 +165,7 @@ export async function readPortable(base: string): Promise<StoreSnapshot | null> 
       savedAt: j.savedAt,
     }
   } catch (e) {
-    console.warn('[PendriveAI] portable store unreadable:', e)
+    console.warn('[PenAI] portable store unreadable:', e)
     return null
   }
 }
@@ -240,6 +242,8 @@ export function visibleChats(snap: StoreSnapshot): Chat[] {
 
 // ------------------------------------------------------------------ settings
 
+// Kept for the same reason as DB_NAME: renaming it would silently reset
+// everyone's settings.
 const SETTINGS_KEY = 'pendriveai.settings.v1'
 
 export function loadSettingsRaw(): unknown {
@@ -256,7 +260,7 @@ export function saveSettingsRaw(value: unknown): void {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(value))
   } catch (e) {
     // Private browsing or a full quota. Not fatal: settings just will not stick.
-    console.warn('[PendriveAI] cannot save settings:', e)
+    console.warn('[PenAI] cannot save settings:', e)
   }
 }
 
@@ -270,7 +274,7 @@ export function exportToFile(snap: StoreSnapshot): void {
   const a = document.createElement('a')
   a.href = url
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-  a.download = `pendriveai-chats-${stamp}.json`
+  a.download = `penai-chats-${stamp}.json`
   document.body.appendChild(a)
   a.click()
   a.remove()
@@ -282,7 +286,7 @@ export async function importFromFile(file: File): Promise<StoreSnapshot> {
   const text = await file.text()
   const j = JSON.parse(text) as Partial<StoreSnapshot>
   if (!Array.isArray(j.chats) || !Array.isArray(j.messages)) {
-    throw new Error('That file does not look like a PendriveAI export.')
+    throw new Error('That file does not look like a PenAI export.')
   }
   return { version: 1, chats: j.chats, messages: j.messages }
 }

@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Overview - PendriveAI docs</title>
+<title>Overview - PenAI docs</title>
 <meta name="description" content="Overview
-What PendriveAI is, how the pieces fit together, and what it can do.">
+What PenAI is, how the pieces fit together, and what it can do.">
 <link rel="icon" href="../assets/mark.svg">
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -33,7 +33,7 @@ What PendriveAI is, how the pieces fit together, and what it can do.">
 <a href="BUILD.html">Building a release</a>
 <a href="DEVELOPMENT.html">Development setup</a>
 <span class="kicker">Live with it</span>
-<a href="USAGE.html">Running PendriveAI</a>
+<a href="USAGE.html">Running PenAI</a>
 <a href="TROUBLESHOOTING.html">Troubleshooting</a>
 <a href="LIMITATIONS.html">Known limitations</a>
 <a href="PRIVACY.html">Privacy and security</a>
@@ -43,10 +43,10 @@ What PendriveAI is, how the pieces fit together, and what it can do.">
 </nav>
 <article class="doc">
 <h1>Overview</h1>
-<p>What PendriveAI is, how the pieces fit together, and what it can do.</p>
+<p>What PenAI is, how the pieces fit together, and what it can do.</p>
 <hr>
-<h2 id="what-pendriveai-is">What PendriveAI is</h2>
-<p>PendriveAI is a self-contained AI chat system that lives on a USB pendrive. There is no desktop application and no installer. The drive carries three things:</p>
+<h2 id="what-penai-is">What PenAI is</h2>
+<p>PenAI is a self-contained AI chat system that lives on a USB pendrive. There is no desktop application and no installer. The drive carries three things:</p>
 <ol>
 <li>A CPU build of <strong>llama.cpp</strong> (the <code>llama-server</code> HTTP server).</li>
 <li>One <strong>GGUF model file</strong>.</li>
@@ -145,7 +145,7 @@ Offline AI chat</code></pre>
 </tbody></table></div>
 <p>The launcher's own modules are <code>main.rs</code>, <code>paths.rs</code>, <code>config.rs</code>, <code>sysinfo.rs</code>, <code>net.rs</code>, <code>child.rs</code>, <code>logging.rs</code>, <code>json.rs</code>, <code>lock.rs</code>, <code>store.rs</code>, <code>browser.rs</code> and <code>signals.rs</code>.</p>
 <p>The deeper design rationale, including why llama.cpp's <code>--path</code> was chosen over shipping a separate static server, is in <a href="ARCHITECTURE.html">Architecture</a>.</p>
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

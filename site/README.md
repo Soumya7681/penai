@@ -1,4 +1,4 @@
-# The PendriveAI site
+# The PenAI site
 
 Two things live here, both static and both hostable anywhere that serves files:
 

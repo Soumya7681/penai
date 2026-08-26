@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Building a release - PendriveAI docs</title>
+<title>Building a release - PenAI docs</title>
 <meta name="description" content="Building a release
 One command for the whole drive, and the individual steps behind it.">
 <link rel="icon" href="../assets/mark.svg">
@@ -12,7 +12,7 @@ One command for the whole drive, and the individual steps behind it.">
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -33,7 +33,7 @@ One command for the whole drive, and the individual steps behind it.">
 <a href="BUILD.html" class="current">Building a release</a>
 <a href="DEVELOPMENT.html">Development setup</a>
 <span class="kicker">Live with it</span>
-<a href="USAGE.html">Running PendriveAI</a>
+<a href="USAGE.html">Running PenAI</a>
 <a href="TROUBLESHOOTING.html">Troubleshooting</a>
 <a href="LIMITATIONS.html">Known limitations</a>
 <a href="PRIVACY.html">Privacy and security</a>
@@ -47,7 +47,7 @@ One command for the whole drive, and the individual steps behind it.">
 <hr>
 <h2 id="building-the-release">Building the release</h2>
 <h3 id="the-one-command">The one command</h3>
-<pre><code class="lang-bash">./scripts/build-all.sh --target /media/you/PENDRIVEAI</code></pre>
+<pre><code class="lang-bash">./scripts/build-all.sh --target /media/you/PENAI</code></pre>
 <p>That is the whole build. It fetches the llama.cpp runtimes, builds the web UI, builds the launcher for Linux and (if mingw-w64 is installed) for Windows, downloads and checksums the model, assembles <code>release/</code>, and copies the result onto the drive.</p>
 <p>It is resumable. Every step skips itself when its output already exists, so an interrupted run costs nothing to repeat - which matters, because the model download alone is 2.5 GB. It never uses <code>sudo</code> and never formats anything; if a prerequisite needs root it stops and prints the exact command to run.</p>
 <p>Useful variations:</p>
@@ -56,7 +56,7 @@ One command for the whole drive, and the individual steps behind it.">
 ./scripts/build-all.sh --platform linux            # skip the Windows half
 ./scripts/build-all.sh --skip-model                # package without weights
 ./scripts/build-all.sh --clean                     # rebuild everything</code></pre>
-<p>The model is cached in <code>~/.cache/pendriveai/model.gguf</code>, outside the repo, so <code>--clean</code> and reformatting the drive never cost another 2.5 GB download.</p>
+<p>The model is cached in <code>~/.cache/penai/model.gguf</code>, outside the repo, so <code>--clean</code> and reformatting the drive never cost another 2.5 GB download.</p>
 <h3 id="the-individual-steps">The individual steps</h3>
 <p><code>build-all.sh</code> calls these in order. Run them by hand if you want to stop between stages.</p>
 <pre><code class="lang-bash">./scripts/fetch-runtime.sh     # llama-b10549-bin-ubuntu-x64.tar.gz, trimmed
@@ -91,7 +91,7 @@ cargo build --release --target x86_64-pc-windows-gnu</code></pre>
 </tbody></table></div>
 <p><code>StartAI.bat</code> is untested on real Windows hardware.</p>
 <p>The Windows runtime itself needs no compiler. <code>scripts/fetch-runtime.ps1</code> downloads and trims <code>llama-b10549-bin-win-cpu-x64.zip</code>, and <code>scripts/build-windows.ps1</code> assembles the release folder.</p>
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

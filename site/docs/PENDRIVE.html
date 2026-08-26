@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Preparing the pendrive - PendriveAI docs</title>
+<title>Preparing the pendrive - PenAI docs</title>
 <meta name="description" content="Preparing the pendrive
 Formatting the drive and copying a release onto it.">
 <link rel="icon" href="../assets/mark.svg">
@@ -12,7 +12,7 @@ Formatting the drive and copying a release onto it.">
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -33,7 +33,7 @@ Formatting the drive and copying a release onto it.">
 <a href="BUILD.html">Building a release</a>
 <a href="DEVELOPMENT.html">Development setup</a>
 <span class="kicker">Live with it</span>
-<a href="USAGE.html">Running PendriveAI</a>
+<a href="USAGE.html">Running PenAI</a>
 <a href="TROUBLESHOOTING.html">Troubleshooting</a>
 <a href="LIMITATIONS.html">Known limitations</a>
 <a href="PRIVACY.html">Privacy and security</a>
@@ -89,19 +89,19 @@ sudo pacman -S exfatprogs          # Arch</code></pre>
 <pre><code class="lang-bash">udisksctl unmount -b /dev/sdX1
 # or
 sudo umount /dev/sdX1</code></pre>
-<p><strong>Step 4. Format it as exFAT with the label <code>PENDRIVEAI</code>.</strong></p>
-<pre><code class="lang-bash">sudo mkfs.exfat -n PENDRIVEAI /dev/sdX1</code></pre>
+<p><strong>Step 4. Format it as exFAT with the label <code>PENAI</code>.</strong></p>
+<pre><code class="lang-bash">sudo mkfs.exfat -n PENAI /dev/sdX1</code></pre>
 <p><strong>Step 5. Mount it again.</strong></p>
 <p>Unplug and replug the drive, or mount it explicitly:</p>
 <pre><code class="lang-bash">udisksctl mount -b /dev/sdX1</code></pre>
-<p>It will appear at something like <code>/media/&lt;user&gt;/PENDRIVEAI</code> or <code>/run/media/&lt;user&gt;/PENDRIVEAI</code>. <strong>The launcher does not care what that path is.</strong> It discovers its own root at runtime, so any mount point works, spaces included.</p>
+<p>It will appear at something like <code>/media/&lt;user&gt;/PENAI</code> or <code>/run/media/&lt;user&gt;/PENAI</code>. <strong>The launcher does not care what that path is.</strong> It discovers its own root at runtime, so any mount point works, spaces included.</p>
 <p><strong>Step 6, only if needed. Create a partition table.</strong></p>
 <p>Do this only if the drive has no partition table at all, or a broken one:</p>
 <pre><code class="lang-bash">sudo parted /dev/sdX -- mklabel msdos mkpart primary 1MiB 100%</code></pre>
 <p>Then format the newly created <code>/dev/sdX1</code> with Step 4. Note that this command takes the whole device (<code>/dev/sdX</code>), not a partition.</p>
 <p><strong>Step 7. Verify.</strong></p>
 <pre><code class="lang-bash">lsblk -f</code></pre>
-<p>The partition should now show <code>exfat</code> as its filesystem and <code>PENDRIVEAI</code> as its label.</p>
+<p>The partition should now show <code>exfat</code> as its filesystem and <code>PENAI</code> as its label.</p>
 <h2 id="linux-gui-alternative">Linux, GUI alternative</h2>
 <p>GNOME Disks:</p>
 <pre><code class="lang-bash">gnome-disks</code></pre>
@@ -109,13 +109,13 @@ sudo umount /dev/sdX1</code></pre>
 <li>Pick the USB device in the left-hand list. Confirm the size and the model so you are certain it is the pendrive.</li>
 <li>Use the menu to choose <strong>Format Partition</strong>.</li>
 <li>For the type, choose <strong>Other</strong>, then <strong>exFAT</strong>.</li>
-<li>Set the name to <code>PENDRIVEAI</code>.</li>
+<li>Set the name to <code>PENAI</code>.</li>
 </ol>
 <p>GParted also works, but it may need the <code>exfatprogs</code> package installed first before exFAT appears as an option.</p>
 <h2 id="windows-file-explorer-simplest">Windows, File Explorer (simplest)</h2>
 <ol>
 <li>Open <strong>This PC</strong>, right-click the USB drive, and choose <strong>Format</strong>.</li>
-<li>Set <strong>File system</strong> to <strong>exFAT</strong>. Leave <strong>Allocation unit size</strong> at default. Set <strong>Volume label</strong> to <code>PENDRIVEAI</code>. Leave <strong>Quick Format</strong> checked.</li>
+<li>Set <strong>File system</strong> to <strong>exFAT</strong>. Leave <strong>Allocation unit size</strong> at default. Set <strong>Volume label</strong> to <code>PENAI</code>. Leave <strong>Quick Format</strong> checked.</li>
 <li>Click <strong>Start</strong> and confirm. <strong>This erases the drive.</strong> Make sure the drive letter in the dialog title is the pendrive and not another disk.</li>
 </ol>
 <h2 id="windows-powershell-alternative">Windows, PowerShell alternative</h2>
@@ -125,7 +125,7 @@ sudo umount /dev/sdX1</code></pre>
 Get-Partition -DiskNumber &lt;n&gt;</code></pre>
 <p><strong>Verify the disk number and the size before continuing.</strong> A wrong disk number here formats the wrong drive.</p>
 <p>Then format, replacing <code>E</code> with the real drive letter:</p>
-<pre><code class="lang-powershell">Format-Volume -DriveLetter E -FileSystem exFAT -NewFileSystemLabel PENDRIVEAI</code></pre>
+<pre><code class="lang-powershell">Format-Volume -DriveLetter E -FileSystem exFAT -NewFileSystemLabel PENAI</code></pre>
 <p><code>diskpart</code> also exists and can do this, but <code>Format-Volume</code> is safer for this task because it operates on a volume you have already identified by letter rather than on a selected disk.</p>
 <h2 id="macos">macOS</h2>
 <ol>
@@ -133,9 +133,9 @@ Get-Partition -DiskNumber &lt;n&gt;</code></pre>
 <li>Select the <strong>USB device</strong>, not just the volume underneath it.</li>
 <li>Click <strong>Erase</strong>.</li>
 <li>Set <strong>Format</strong> to <strong>ExFAT</strong> and <strong>Scheme</strong> to <strong>Master Boot Record</strong>.</li>
-<li>Name it <code>PENDRIVEAI</code>.</li>
+<li>Name it <code>PENAI</code>.</li>
 </ol>
-<p>macOS is mentioned here only for preparing the drive. <strong>PendriveAI v1 does not ship a macOS runtime</strong>, so the drive you format on a Mac is for use on Linux or Windows.</p>
+<p>macOS is mentioned here only for preparing the drive. <strong>PenAI v1 does not ship a macOS runtime</strong>, so the drive you format on a Mac is for use on Linux or Windows.</p>
 <h2 id="if-you-cannot-or-will-not-reformat">If you cannot or will not reformat</h2>
 <p>Keeping FAT32 is a supported fallback. Two consequences.</p>
 <p><strong>1. On Linux you must start it differently.</strong></p>
@@ -146,31 +146,31 @@ Get-Partition -DiskNumber &lt;n&gt;</code></pre>
 <h2 id="from-zero-to-chatting-the-full-checklist">From zero to chatting: the full checklist</h2>
 <p>The complete path, in order, from an unformatted pendrive to a working chat.</p>
 <ol>
-<li><strong>Format the drive as exFAT with the label <code>PENDRIVEAI</code></strong> (<a href="#format-the-pendrive-first-do-this-before-anything-else">Format the pendrive first</a>).</li>
+<li><strong>Format the drive as exFAT with the label <code>PENAI</code></strong> (<a href="#format-the-pendrive-first-do-this-before-anything-else">Format the pendrive first</a>).</li>
 <li><strong>On a build machine:</strong> clone the repository, and install Rust and Node.js (see <a href="DEVELOPMENT.html">Development setup</a> for versions).</li>
 <li><strong>Download the llama.cpp runtimes</strong> (release <code>b10549</code>): ``<code>bash bash scripts/fetch-runtime.sh --platform both </code>``</li>
 <li><strong>Download the model</strong> (2.50 GB Qwen3-4B-Instruct-2507-Q4_K_M GGUF) and verify its SHA-256: ``<code>bash bash models/download-model.sh </code>``</li>
-<li><strong>Build the launcher and the web UI</strong>, and assemble the release tree at <code>release/linux/PendriveAI/</code>: ``<code>bash bash scripts/build-linux.sh </code>``</li>
+<li><strong>Build the launcher and the web UI</strong>, and assemble the release tree at <code>release/linux/PenAI/</code>: ``<code>bash bash scripts/build-linux.sh </code>``</li>
 <li><strong>For Windows</strong>, either run <code>scripts\build-windows.ps1</code> on a Windows machine, or cross-compile from Linux with mingw-w64 installed: ``<code>bash bash scripts/build-windows-cross.sh </code>`<code> To repeat the warning from the Status note: **</code>StartAI.exe` was not built or tested here.**</li>
-<li><strong>Copy everything onto the drive:</strong> ``<code>bash bash scripts/deploy-to-pendrive.sh \ --target /media/&lt;user&gt;/PENDRIVEAI \ --platform both \ --model models/model.gguf </code>`` The model copy is the slow part. The measured write speed on the test drive was 3.4 MB/s, so a 2.5 GB model can take <strong>over 10 minutes</strong>. Let it finish.</li>
+<li><strong>Copy everything onto the drive:</strong> ``<code>bash bash scripts/deploy-to-pendrive.sh \ --target /media/&lt;user&gt;/PENAI \ --platform both \ --model models/model.gguf </code>`` The model copy is the slow part. The measured write speed on the test drive was 3.4 MB/s, so a 2.5 GB model can take <strong>over 10 minutes</strong>. Let it finish.</li>
 <li><strong>Eject safely:</strong> <code>udisksctl unmount -b /dev/sdX1</code> on Linux, or "Safely Remove Hardware" on Windows.</li>
 <li><strong>Plug the drive into the target computer.</strong></li>
 <li><strong>Run the launcher.</strong> Linux: <code>./StartAI</code> on exFAT, or <code>sh StartAI.sh</code> on FAT32. Windows: double-click <code>StartAI.exe</code>, or <code>StartAI.bat</code> if the exe was not built.</li>
-<li><strong>Wait</strong> for <code>PendriveAI is ready at http://127.0.0.1:8080</code>. The browser opens by itself.</li>
+<li><strong>Wait</strong> for <code>PenAI is ready at http://127.0.0.1:8080</code>. The browser opens by itself.</li>
 <li><strong>Chat.</strong> Press Ctrl+C in the launcher window to stop.</li>
 </ol>
 <h2 id="copying-the-release-folder">Copying the release folder</h2>
 <p>If you would rather copy by hand than use <code>deploy-to-pendrive.sh</code>, the release folder is self-contained:</p>
-<pre><code class="lang-bash">cp -r release/PendriveAI /media/&lt;you&gt;/PENDRIVEAI/
+<pre><code class="lang-bash">cp -r release/PenAI /media/&lt;you&gt;/PENAI/
 sync</code></pre>
 <p>At 3.4 MB/s measured write speed, the 2.6 GB payload takes a while. <strong>Wait for <code>sync</code> to finish before unplugging.</strong></p>
 <p>Release folder structure:</p>
-<pre><code>PendriveAI/
+<pre><code>PenAI/
 ├── StartAI                  Linux launcher (native ELF)
 ├── StartAI.sh               Linux bootstrap for FAT32 / noexec mounts (sh StartAI.sh)
 ├── StartAI.exe              Windows launcher (build on Windows; not built here)
 ├── StartAI.bat              Windows zero-compile fallback launcher
-├── .pendriveai-root         root marker used for path discovery
+├── .penai-root         root marker used for path discovery
 ├── runtime/
 │   ├── linux/               llama-server + trimmed .so set
 │   └── windows/             llama-server.exe + trimmed .dll set
@@ -184,7 +184,7 @@ sync</code></pre>
 │   ├── chats/               portable chat history (chats.json)
 │   └── logs/                rotating logs
 └── README.md</code></pre>
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

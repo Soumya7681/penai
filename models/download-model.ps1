@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Fetch the PendriveAI model (Windows).
+    Fetch the PenAI model (Windows).
 
 .DESCRIPTION
     Downloads a GGUF quantisation of Qwen3-4B-Instruct-2507 from Hugging Face
@@ -79,7 +79,7 @@ if ($Quant -eq $VerifiedQuant) {
 }
 
 # ------------------------------------------------------------------ banner ----
-Say 'PendriveAI model download'
+Say 'PenAI model download'
 Say "  repository:  $RepoId"
 Say "  file:        $FileName"
 Say "  URL:         $Url"

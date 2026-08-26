@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "pendriveai-launcher"
+name = "penai-launcher"
 version = "1.0.0"

@@ -11,7 +11,7 @@ One command for the whole drive, and the individual steps behind it.
 ### The one command
 
 ```bash
-./scripts/build-all.sh --target /media/you/PENDRIVEAI
+./scripts/build-all.sh --target /media/you/PENAI
 ```
 
 That is the whole build. It fetches the llama.cpp runtimes, builds the web UI,
@@ -34,7 +34,7 @@ Useful variations:
 ./scripts/build-all.sh --clean                     # rebuild everything
 ```
 
-The model is cached in `~/.cache/pendriveai/model.gguf`, outside the repo, so
+The model is cached in `~/.cache/penai/model.gguf`, outside the repo, so
 `--clean` and reformatting the drive never cost another 2.5 GB download.
 
 ### The individual steps

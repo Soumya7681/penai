@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Privacy and security - PendriveAI docs</title>
+<title>Privacy and security - PenAI docs</title>
 <meta name="description" content="Privacy and security
 What leaves the machine (nothing), and what the threat model is.">
 <link rel="icon" href="../assets/mark.svg">
@@ -12,7 +12,7 @@ What leaves the machine (nothing), and what the threat model is.">
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -33,7 +33,7 @@ What leaves the machine (nothing), and what the threat model is.">
 <a href="BUILD.html">Building a release</a>
 <a href="DEVELOPMENT.html">Development setup</a>
 <span class="kicker">Live with it</span>
-<a href="USAGE.html">Running PendriveAI</a>
+<a href="USAGE.html">Running PenAI</a>
 <a href="TROUBLESHOOTING.html">Troubleshooting</a>
 <a href="LIMITATIONS.html">Known limitations</a>
 <a href="PRIVACY.html" class="current">Privacy and security</a>
@@ -84,8 +84,8 @@ What leaves the machine (nothing), and what the threat model is.">
 <p><strong>Content-Security-Policy.</strong> A meta tag restricts <code>connect-src</code> to <code>'self'</code> plus loopback, so the page cannot reach any remote host even if something tried.</p>
 <p><strong>URL allowlist.</strong> The launcher refuses to open any URL that is not <code>http://127.0.0.1:&lt;port&gt;</code> or <code>http://localhost:&lt;port&gt;</code>.</p>
 <p><strong>Child process containment.</strong> On Linux the child gets <code>PR_SET_PDEATHSIG</code>, so <code>llama-server</code> cannot outlive the launcher. Shutdown sends SIGTERM and escalates to a kill after a grace period. On Windows shutdown uses <code>TerminateProcess</code>, so <strong>Windows shutdown is not graceful</strong>.</p>
-<p><strong>What PendriveAI does not protect against, stated honestly.</strong> Anything running as your user on the same computer can reach a loopback port. PendriveAI adds no authentication, because putting a shared secret in a page served from the same origin buys very little. Do not run it on a shared or multi-user machine you do not trust.</p>
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p><strong>What PenAI does not protect against, stated honestly.</strong> Anything running as your user on the same computer can reach a loopback port. PenAI adds no authentication, because putting a shared secret in a page served from the same origin buys very little. Do not run it on a shared or multi-user machine you do not trust.</p>
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

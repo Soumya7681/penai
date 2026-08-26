@@ -1,5 +1,5 @@
 /*
- * PendriveAI UI styles.
+ * PenAI UI styles.
  *
  * One stylesheet, no framework, no webfont. The bundle is read from a USB drive
  * on a machine with no network, and the page's own Content-Security-Policy sets
@@ -149,6 +149,10 @@ body,
 #root {
   height: 100%;
   margin: 0;
+  /* The shell owns every scrollbar on the page. Without this the document
+     itself scrolls once a thread gets long, which drags the composer and the
+     readout strip out of view. */
+  overflow: hidden;
 }
 
 body {
@@ -229,6 +233,9 @@ a {
   display: grid;
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   height: 100%;
+  /* dvh keeps the composer above a phone browser's collapsing toolbar. */
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .app-collapsed {
@@ -239,7 +246,13 @@ a {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* min-height:0 is what actually lets .scroll shrink. A column flex item
+     defaults to min-height:auto, so without it the thread grows to its full
+     content height and pushes the composer off the bottom of the window
+     instead of scrolling inside its own box. */
+  min-height: 0;
   height: 100%;
+  overflow: hidden;
   position: relative;
 }
 
@@ -253,6 +266,8 @@ a {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
   overflow: hidden;
   background: var(--bg-panel);
   border-right: 1px solid var(--border);
@@ -269,6 +284,7 @@ a {
 }
 
 .sidebar-head {
+  flex: none;
   padding: 14px 14px 12px;
   border-bottom: 1px solid var(--border);
 }
@@ -353,9 +369,13 @@ a {
   opacity: 0.5;
 }
 
+/* The only part of the panel that scrolls: the brand and the Settings button
+   stay put no matter how many chats there are. */
 .chat-list {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 12px 8px 8px;
 }
 
@@ -477,6 +497,7 @@ a {
 }
 
 .sidebar-foot {
+  flex: none;
   padding: 10px 14px 14px;
   border-top: 1px solid var(--border);
 }
@@ -748,7 +769,8 @@ a {
 /* ----------------------------------------------------------------- thread */
 
 .scroll {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
@@ -777,6 +799,7 @@ a {
 }
 
 .bubble {
+  position: relative;
   max-width: 85%;
   padding: 10px 14px;
   border: 1px solid var(--border);
@@ -785,6 +808,42 @@ a {
   box-shadow: var(--shadow-sm);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.bubble-clamped {
+  max-height: 15em;
+  overflow: hidden;
+  padding-bottom: 34px;
+}
+
+.bubble-clamped::after {
+  content: '';
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  height: 64px;
+  border-radius: 0 0 4px var(--r-lg);
+  background: linear-gradient(to bottom, transparent, var(--bg-panel) 72%);
+  pointer-events: none;
+}
+
+.bubble-more {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  z-index: 1;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--pill);
+  background: var(--bg-raised);
+  color: var(--text-dim);
+  font-size: 11.5px;
+  padding: 3px 12px;
+}
+
+.bubble-more:hover {
+  color: var(--text);
+  border-color: var(--text-faint);
 }
 
 .turn-head {
@@ -1190,13 +1249,95 @@ a {
 
 .composer-box {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
   gap: 8px;
   border: 1px solid var(--border-strong);
   border-radius: var(--r-lg);
   background: var(--bg);
   padding: 7px 7px 7px 14px;
   transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------- pasted blocks */
+
+/*
+ * A paste bigger than a screenful is held as an attachment rather than dumped
+ * into the box. It is still part of the message -- it just stops a pasted file
+ * from burying the sentence you are writing about it.
+ */
+.pastes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 3px 0 0;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.paste {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.paste-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  text-align: left;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-panel);
+  color: var(--text-dim);
+  transition: border-color 0.14s ease, color 0.14s ease;
+}
+
+.paste-chip:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.paste-name {
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.paste-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paste-preview {
+  grid-column: 1 / -1;
+  margin: 0;
+  max-height: 240px;
+  overflow: auto;
+  padding: 11px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--code-bg);
+  color: var(--code-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 4;
 }
 
 .composer-box:focus-within {

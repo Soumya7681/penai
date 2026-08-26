@@ -1,6 +1,6 @@
-# PendriveAI Architecture
+# PenAI Architecture
 
-This document explains how PendriveAI is put together and, more usefully, *why*
+This document explains how PenAI is put together and, more usefully, *why*
 each decision was made. Where a claim was measured, it says so. Where something
 was not verified, it says that too.
 
@@ -29,7 +29,7 @@ Every technical statement here refers to llama.cpp release `b10549` (published
 
 ## 1. System architecture
 
-PendriveAI has exactly two processes at runtime, plus one thread pool inside the
+PenAI has exactly two processes at runtime, plus one thread pool inside the
 first of them. That is the whole system.
 
 ```
@@ -231,8 +231,8 @@ graceful.** This is a known limitation, not a bug to be discovered later.
 
 ## 3. Portable path strategy
 
-A pendrive has no stable path. It is `/media/alice/PENDRIVEAI` on one machine,
-`/run/media/bob/My Drive` on another, and `D:\PendriveAI` on Windows. The entire
+A pendrive has no stable path. It is `/media/alice/PENAI` on one machine,
+`/run/media/bob/My Drive` on another, and `D:\PenAI` on Windows. The entire
 launcher is built around never knowing its own location until runtime.
 
 Rules the code obeys:
@@ -244,14 +244,14 @@ Rules the code obeys:
 Root discovery, in order:
 
 1. Start from `std::env::current_exe()`.
-2. Walk up at most 4 levels looking for a `.pendriveai-root` marker file.
+2. Walk up at most 4 levels looking for a `.penai-root` marker file.
 3. Fall back to structural detection, that is, a directory that contains the
    expected `runtime/`, `models/` and `web/` shape.
-4. Allow an explicit override through the `PENDRIVEAI_ROOT` environment variable.
+4. Allow an explicit override through the `PENAI_ROOT` environment variable.
 
 Step 4 is what makes the FAT32 bootstrap possible: `StartAI.sh` copies the
 executable parts to a local temporary directory and then points
-`PENDRIVEAI_ROOT` back at the pendrive, so the binary runs from local disk while
+`PENAI_ROOT` back at the pendrive, so the binary runs from local disk while
 the model and web assets are still read from the drive.
 
 Layout construction is written as a **pure function** from a root path to a set
@@ -260,10 +260,10 @@ filesystem, and it is tested against four simulated roots including a
 Windows-style one:
 
 ```
-/media/someone/PENDRIVEAI
+/media/someone/PENAI
 /run/media/other-user/My Drive     (note the space)
 /tmp/x/y/z
-D:\PendriveAI
+D:\PenAI
 ```
 
 Root discovery is separately tested through both the marker-file path and the
@@ -315,7 +315,7 @@ Two answers ship:
 
 1. **`StartAI.sh`**, run as `sh StartAI.sh`. It copies the launcher and the
    llama.cpp runtime into a local temporary directory, marks them executable, and
-   runs the launcher with `PENDRIVEAI_ROOT` pointing back at the pendrive. Only
+   runs the launcher with `PENAI_ROOT` pointing back at the pendrive. Only
    the small executable parts are copied; the 2.50 GB model is still read from
    the drive. **This bootstrap has not been tested end to end.**
 2. **Reformat to exFAT.** This is the recommended fix. exFAT allows direct
@@ -326,7 +326,7 @@ Two answers ship:
 lsblk                                     # CONFIRM the device first
 sudo apt install exfatprogs
 udisksctl unmount -b /dev/sdX1
-sudo mkfs.exfat -n PENDRIVEAI /dev/sdX1   # ERASES THE DRIVE
+sudo mkfs.exfat -n PENAI /dev/sdX1   # ERASES THE DRIVE
 ```
 
 The full procedure, including partition-table repair, GUI alternatives, and the
@@ -647,7 +647,7 @@ temp file behind.
 
 ## 9. Security model
 
-The threat model is narrow and worth being explicit about: PendriveAI runs
+The threat model is narrow and worth being explicit about: PenAI runs
 untrusted *model output* inside a browser page, on a machine the user controls,
 with no network exposure. It does not attempt to defend against a hostile local
 user or a compromised host.
@@ -697,11 +697,11 @@ The launcher refuses to open any URL that is not `http://127.0.0.1:<port>` or
 ### What is deliberately not protected
 
 Anything running as your user on the same computer can reach a loopback port.
-PendriveAI adds **no authentication**, because putting a shared secret into a page
+PenAI adds **no authentication**, because putting a shared secret into a page
 served from the same origin buys very little: whatever can read the port can
 usually read the page too.
 
-**Do not run PendriveAI on a shared or multi-user machine you do not trust.**
+**Do not run PenAI on a shared or multi-user machine you do not trust.**
 That is the honest boundary of this design.
 
 ---
@@ -722,7 +722,7 @@ version of the procedure; the shorter operator-facing version is
 
 Three properties of the target filesystem propagate directly into the design:
 
-| Property | Consequence for PendriveAI |
+| Property | Consequence for PenAI |
 |---|---|
 | Can a native binary be executed from the mount? | Decides whether `./StartAI` works, or whether the `StartAI.sh` staging bootstrap is mandatory on Linux |
 | Maximum single-file size | Decides which model quantisations can be carried at all |
@@ -802,10 +802,10 @@ udisksctl unmount -b /dev/sdX1
 sudo umount /dev/sdX1
 ```
 
-**Step 4. Format as exFAT with the label `PENDRIVEAI`.**
+**Step 4. Format as exFAT with the label `PENAI`.**
 
 ```bash
-sudo mkfs.exfat -n PENDRIVEAI /dev/sdX1
+sudo mkfs.exfat -n PENAI /dev/sdX1
 ```
 
 **Step 5. Mount it again.**
@@ -816,8 +816,8 @@ Unplug and replug, or mount explicitly:
 udisksctl mount -b /dev/sdX1
 ```
 
-It appears at something like `/media/<user>/PENDRIVEAI` or
-`/run/media/<user>/PENDRIVEAI`. **The launcher does not care what that path is**,
+It appears at something like `/media/<user>/PENAI` or
+`/run/media/<user>/PENAI`. **The launcher does not care what that path is**,
 which is the entire point of the root-discovery design in section 3. Spaces in
 the path are fine and are covered by a unit test.
 
@@ -838,13 +838,13 @@ Then format the newly created `/dev/sdX1` with Step 4.
 lsblk -f
 ```
 
-The partition should report `exfat` with the label `PENDRIVEAI`.
+The partition should report `exfat` with the label `PENAI`.
 
 #### Linux, GUI alternative
 
 GNOME Disks (`gnome-disks`): pick the USB device in the left-hand list, confirming
 size and model, use the menu to **Format Partition**, choose **Other** and then
-**exFAT**, and set the name to `PENDRIVEAI`.
+**exFAT**, and set the name to `PENAI`.
 
 GParted also works, but it may need the `exfatprogs` package installed before
 exFAT appears as an option.
@@ -853,7 +853,7 @@ exFAT appears as an option.
 
 1. Open **This PC**, right-click the USB drive, choose **Format**.
 2. **File system:** exFAT. **Allocation unit size:** default. **Volume label:**
-   `PENDRIVEAI`. Leave **Quick Format** checked.
+   `PENAI`. Leave **Quick Format** checked.
 3. Click **Start** and confirm. This erases the drive, so confirm the drive
    letter in the dialog belongs to the pendrive.
 
@@ -870,7 +870,7 @@ Verify the disk number and the size before continuing. Then format, replacing `E
 with the real drive letter:
 
 ```powershell
-Format-Volume -DriveLetter E -FileSystem exFAT -NewFileSystemLabel PENDRIVEAI
+Format-Volume -DriveLetter E -FileSystem exFAT -NewFileSystemLabel PENAI
 ```
 
 `diskpart` can also do this, but `Format-Volume` is preferred here because it
@@ -881,9 +881,9 @@ which removes one whole class of mistake.
 
 Disk Utility: select the **USB device**, not just the volume underneath it, click
 **Erase**, set **Format** to **ExFAT** and **Scheme** to **Master Boot Record**,
-and name it `PENDRIVEAI`.
+and name it `PENAI`.
 
-macOS appears here only as a machine that can prepare a drive. **PendriveAI v1
+macOS appears here only as a machine that can prepare a drive. **PenAI v1
 ships no macOS runtime**, and the memory probe returns unknown on macOS.
 
 #### Staying on FAT32
@@ -899,7 +899,7 @@ sh StartAI.sh        # instead of ./StartAI
 
 `StartAI.sh` copies the launcher and the llama.cpp runtime into a local temporary
 directory where execution is permitted, marks them executable, and sets
-`PENDRIVEAI_ROOT` back to the pendrive so the model, the web assets and the config
+`PENAI_ROOT` back to the pendrive so the model, the web assets and the config
 are still read from the drive. Roughly 45 MB is copied to local disk on first
 run, and the 2.50 GB model is never copied. **This bootstrap has not been tested
 end to end.**
@@ -964,12 +964,12 @@ there, so no two shipped files may differ only in case.
 ### Release layout
 
 ```
-PendriveAI/
+PenAI/
 ├── StartAI                  Linux launcher (native ELF)
 ├── StartAI.sh               Linux bootstrap for FAT32 / noexec mounts (sh StartAI.sh)
 ├── StartAI.exe              Windows launcher (build on Windows; not built here)
 ├── StartAI.bat              Windows zero-compile fallback launcher
-├── .pendriveai-root         root marker used for path discovery
+├── .penai-root         root marker used for path discovery
 ├── runtime/
 │   ├── linux/               llama-server + trimmed .so set
 │   └── windows/             llama-server.exe + trimmed .dll set
@@ -985,7 +985,7 @@ PendriveAI/
 └── README.md
 ```
 
-`.pendriveai-root` is a zero-content marker whose only job is to make root
+`.penai-root` is a zero-content marker whose only job is to make root
 discovery deterministic (section 3). Deleting it forces the slower structural
 detection path.
 

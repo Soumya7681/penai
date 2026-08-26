@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Model setup - PendriveAI docs</title>
+<title>Model setup - PenAI docs</title>
 <meta name="description" content="Model setup
 Choosing, downloading and verifying the GGUF model the drive carries.">
 <link rel="icon" href="../assets/mark.svg">
@@ -12,7 +12,7 @@ Choosing, downloading and verifying the GGUF model the drive carries.">
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -33,7 +33,7 @@ Choosing, downloading and verifying the GGUF model the drive carries.">
 <a href="BUILD.html">Building a release</a>
 <a href="DEVELOPMENT.html">Development setup</a>
 <span class="kicker">Live with it</span>
-<a href="USAGE.html">Running PendriveAI</a>
+<a href="USAGE.html">Running PenAI</a>
 <a href="TROUBLESHOOTING.html">Troubleshooting</a>
 <a href="LIMITATIONS.html">Known limitations</a>
 <a href="PRIVACY.html">Privacy and security</a>
@@ -45,7 +45,7 @@ Choosing, downloading and verifying the GGUF model the drive carries.">
 <h1>Model setup</h1>
 <p>Choosing, downloading and verifying the GGUF model the drive carries.</p>
 <hr>
-<p>PendriveAI v1 ships exactly one model.</p>
+<p>PenAI v1 ships exactly one model.</p>
 <div class="tablewrap"><table><thead><tr>
 <th>Field</th>
 <th>Value</th>
@@ -80,7 +80,7 @@ powershell -File download-model.ps1   # Windows</code></pre>
 <li><strong>On FAT32, the single file must stay under 4 GiB.</strong> exFAT removes this limit.</li>
 <li><strong>For chat use it must be instruct or chat-tuned.</strong> A base or completion model will not follow a conversation; it will just continue your text.</li>
 </ol>
-<p><strong>What we actually tested.</strong> Only <strong>Qwen3-4B-Instruct-2507-Q4_K_M</strong> has been tested by us: measured 13.2 tok/s generation, 50.3 tok/s prompt processing, and a 6 second load, on the development machine described in <a href="USAGE.html#starting-pendriveai">Starting PendriveAI</a>. Everything else listed below <strong>should work, but was not tested here</strong>.</p>
+<p><strong>What we actually tested.</strong> Only <strong>Qwen3-4B-Instruct-2507-Q4_K_M</strong> has been tested by us: measured 13.2 tok/s generation, 50.3 tok/s prompt processing, and a 6 second load, on the development machine described in <a href="USAGE.html#starting-penai">Starting PenAI</a>. Everything else listed below <strong>should work, but was not tested here</strong>.</p>
 <h2 id="same-family-different-size-or-quality">Same family, different size or quality</h2>
 <p>All Apache-2.0. These live in <code>unsloth/Qwen3-4B-Instruct-2507-GGUF</code>, or in the matching <code>unsloth/Qwen3-&lt;size&gt;-GGUF</code> repo for the smaller models.</p>
 <div class="tablewrap"><table><thead><tr>
@@ -134,14 +134,14 @@ powershell -File download-model.ps1   # Windows</code></pre>
   + about 144 KiB per context token   (for a 4B-class model)
   + about 400 MiB of buffers</code></pre>
 <p>So for a 4B-class model, the KV cache costs about <strong>0.6 GiB at ctx 4096</strong> and about <strong>1.2 GiB at ctx 8192</strong>.</p>
-<p>The launcher computes this itself, warns when it is tight, and reduces the context automatically rather than letting the machine thrash. See <a href="USAGE.html#starting-pendriveai">Starting PendriveAI</a>.</p>
+<p>The launcher computes this itself, warns when it is tight, and reduces the context automatically rather than letting the machine thrash. See <a href="USAGE.html#starting-penai">Starting PenAI</a>.</p>
 <h2 id="not-supported-in-v1">Not supported in v1</h2>
 <ul>
 <li><strong>Multimodal and vision models.</strong> The <code>mtmd</code> library is bundled with the llama.cpp release, but the launcher does not wire up an image path, so there is no way to send an image.</li>
 <li><strong>Embedding-only models.</strong> The UI is a chat client and expects <code>/v1/chat/completions</code>.</li>
 <li><strong>GPU-accelerated builds.</strong> The shipped runtime is CPU-only by choice, for portability across unknown machines and for size.</li>
 </ul>
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

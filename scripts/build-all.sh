@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # build-all.sh - one command that turns a clean checkout into a finished,
-#                ready-to-run PendriveAI drive.
+#                ready-to-run PenAI drive.
 #
 # This is the script to run. Everything else under scripts/ is a step that this
 # one calls in the right order:
@@ -18,8 +18,8 @@
 # root, it stops and prints the exact command for you to run.
 #
 # Usage:
-#   scripts/build-all.sh --target /media/you/PENDRIVEAI
-#   scripts/build-all.sh --target /media/you/PENDRIVEAI --model ~/model.gguf
+#   scripts/build-all.sh --target /media/you/PENAI
+#   scripts/build-all.sh --target /media/you/PENAI --model ~/model.gguf
 #   scripts/build-all.sh                       # build only, do not copy anywhere
 #
 set -euo pipefail
@@ -30,7 +30,7 @@ ROOT="$(dirname "$SCRIPT_DIR")"
 TARGET=""
 MODEL=""
 PLATFORM="both"
-MODEL_CACHE="${PENDRIVEAI_MODEL_CACHE:-$HOME/.cache/pendriveai}"
+MODEL_CACHE="${PENAI_MODEL_CACHE:-$HOME/.cache/penai}"
 SKIP_MODEL=0
 SKIP_TESTS=0
 CLEAN=0
@@ -95,9 +95,9 @@ want_windows() { [ "$PLATFORM" = "windows" ] || [ "$PLATFORM" = "both" ]; }
 # The build caches must never live on the drive: a Rust target/ tree and
 # node_modules/ need hundreds of thousands of small files, hard links and
 # symlinks, none of which FAT32 or exFAT handle well or at all.
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-${TMPDIR:-/tmp}/pendriveai-build/cargo}"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-${TMPDIR:-/tmp}/penai-build/cargo}"
 
-say "PendriveAI one-shot build"
+say "PenAI one-shot build"
 say "  repo:        $ROOT"
 say "  platform:    $PLATFORM"
 say "  build cache: $CARGO_TARGET_DIR"
@@ -334,9 +334,9 @@ say "The drive is ready. To start it:"
 say ""
 if want_linux; then
   if [ "$fstype" = "exfat" ]; then
-    say "  Linux:    cd $TARGET/PendriveAI && ./StartAI"
+    say "  Linux:    cd $TARGET/PenAI && ./StartAI"
   else
-    say "  Linux:    cd $TARGET/PendriveAI && sh StartAI.sh"
+    say "  Linux:    cd $TARGET/PenAI && sh StartAI.sh"
   fi
 fi
 if want_windows; then

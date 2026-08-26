@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# download-model.sh - fetch the PendriveAI model (Linux/macOS).
+# download-model.sh - fetch the PenAI model (Linux/macOS).
 #
 # Downloads a GGUF quantisation of Qwen3-4B-Instruct-2507 from Hugging Face and
 # saves it next to this script as model.gguf, which is the name the launcher
@@ -104,7 +104,7 @@ if [ "$QUANT" = "$VERIFIED_QUANT" ]; then
 fi
 
 # ------------------------------------------------------------------ banner ----
-say "PendriveAI model download"
+say "PenAI model download"
 say "  repository: ${REPO_ID}"
 say "  file:       ${FILE_NAME}"
 say "  URL:        ${URL}"

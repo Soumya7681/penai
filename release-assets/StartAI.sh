@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# StartAI.sh - Linux bootstrap for PendriveAI.
+# StartAI.sh - Linux bootstrap for PenAI.
 #
 # WHY THIS EXISTS
 #   A FAT32 filesystem has no execute permission bit. Linux therefore mounts it
@@ -16,7 +16,7 @@
 #   2. If exec is refused, it stages a runnable copy on local disk: the launcher
 #      binary plus runtime/linux (about 45 MB, once) are copied into a private
 #      directory. Nothing else moves. The launcher is then started with
-#      PENDRIVEAI_ROOT pointing at the drive and --runtime-dir pointing at the
+#      PENAI_ROOT pointing at the drive and --runtime-dir pointing at the
 #      staged runtime, so executables run from local disk while the model, the
 #      UI, your config and your chats are still read from and written to the
 #      drive. The model is never copied or linked: it is gigabytes.
@@ -30,7 +30,7 @@
 # Usage:  sh StartAI.sh [any StartAI options, forwarded as-is]
 #         sh StartAI.sh --help
 #
-# Override the staging location with PENDRIVEAI_STAGE=/some/local/dir
+# Override the staging location with PENAI_STAGE=/some/local/dir
 #
 
 set -u
@@ -43,7 +43,7 @@ ROOT=$(cd "$(dirname "$0")" && pwd) || {
 LAUNCHER="$ROOT/StartAI"
 RUNTIME_SRC="$ROOT/runtime/linux"
 
-echo "PendriveAI launcher (Linux bootstrap)"
+echo "PenAI launcher (Linux bootstrap)"
 echo "  drive root: $ROOT"
 
 # ---------------------------------------------------------------- sanity ------
@@ -85,19 +85,19 @@ echo "  Falling back to running from local disk."
 # --------------------------------------------- 2. pick a staging directory ----
 # Preference order: the per-user runtime directory (tmpfs, cleaned on logout),
 # then TMPDIR, then /tmp. All are inside this user's own space; no sudo, ever.
-if [ -n "${PENDRIVEAI_STAGE:-}" ]; then
-    STAGE="$PENDRIVEAI_STAGE"
+if [ -n "${PENAI_STAGE:-}" ]; then
+    STAGE="$PENAI_STAGE"
 elif [ -n "${XDG_RUNTIME_DIR:-}" ] && [ -d "$XDG_RUNTIME_DIR" ] && [ -w "$XDG_RUNTIME_DIR" ]; then
-    STAGE="$XDG_RUNTIME_DIR/pendriveai"
+    STAGE="$XDG_RUNTIME_DIR/penai"
 else
-    STAGE="${TMPDIR:-/tmp}/pendriveai-$(id -u)"
+    STAGE="${TMPDIR:-/tmp}/penai-$(id -u)"
 fi
 
 if ! mkdir -p "$STAGE" 2>/dev/null; then
     echo "" >&2
     echo "ERROR: cannot create the staging directory $STAGE" >&2
-    echo "  Set PENDRIVEAI_STAGE to a writable local directory and try again:" >&2
-    echo "    PENDRIVEAI_STAGE=\"\$HOME/.cache/pendriveai\" sh StartAI.sh" >&2
+    echo "  Set PENAI_STAGE to a writable local directory and try again:" >&2
+    echo "    PENAI_STAGE=\"\$HOME/.cache/penai\" sh StartAI.sh" >&2
     exit 1
 fi
 chmod 700 "$STAGE" 2>/dev/null || true
@@ -107,9 +107,9 @@ chmod 700 "$STAGE" 2>/dev/null || true
 avail_kb=$(df -Pk "$STAGE" 2>/dev/null | awk 'NR==2 {print $4}')
 if [ -n "${avail_kb:-}" ] && [ "$avail_kb" -lt 122880 ]; then
     echo "  only ${avail_kb} KiB free in $STAGE; using \${TMPDIR:-/tmp} instead."
-    STAGE="${TMPDIR:-/tmp}/pendriveai-$(id -u)"
+    STAGE="${TMPDIR:-/tmp}/penai-$(id -u)"
     mkdir -p "$STAGE" 2>/dev/null || {
-        echo "ERROR: cannot create $STAGE either. Set PENDRIVEAI_STAGE and retry." >&2
+        echo "ERROR: cannot create $STAGE either. Set PENAI_STAGE and retry." >&2
         exit 1
     }
     chmod 700 "$STAGE" 2>/dev/null || true
@@ -165,21 +165,21 @@ echo "  copied $copied file(s), reused $skipped already-staged file(s)"
 # Execute bits, on a filesystem that can actually store them.
 chmod 755 "$STAGE/StartAI" 2>/dev/null || {
     echo "ERROR: cannot make $STAGE/StartAI executable." >&2
-    echo "  Is $STAGE itself on a noexec filesystem? Set PENDRIVEAI_STAGE to a" >&2
+    echo "  Is $STAGE itself on a noexec filesystem? Set PENAI_STAGE to a" >&2
     echo "  normal local directory, for example:" >&2
-    echo "    PENDRIVEAI_STAGE=\"\$HOME/.cache/pendriveai\" sh StartAI.sh" >&2
+    echo "    PENAI_STAGE=\"\$HOME/.cache/penai\" sh StartAI.sh" >&2
     exit 1
 }
 chmod 755 "$STAGE/runtime/linux/llama-server" 2>/dev/null || {
     echo "ERROR: cannot make $STAGE/runtime/linux/llama-server executable." >&2
-    echo "  Set PENDRIVEAI_STAGE to a normal local directory and retry." >&2
+    echo "  Set PENAI_STAGE to a normal local directory and retry." >&2
     exit 1
 }
 
 # --------------------------------------------------------- 4. run it ----------
 # No symlink mirror is needed, and the model is never copied or linked.
 #
-# PENDRIVEAI_ROOT keeps every project path on the drive (models, web, config,
+# PENAI_ROOT keeps every project path on the drive (models, web, config,
 # data). --runtime-dir points ONLY the llama.cpp lookup at the staged, executable
 # copy. That removes the whole class of "the staging filesystem cannot hold
 # symlinks" failures that a mirror approach has to cope with.
@@ -191,11 +191,11 @@ if ! mkdir -p "$ROOT/data/chats" "$ROOT/data/logs" 2>/dev/null; then
     echo "        are disabled for this run. The chat UI still works."
 fi
 
-PENDRIVEAI_ROOT="$ROOT"
-export PENDRIVEAI_ROOT
+PENAI_ROOT="$ROOT"
+export PENAI_ROOT
 
 echo ""
-echo "Starting PendriveAI"
+echo "Starting PenAI"
 echo "  launcher:   $STAGE/StartAI            (staged on local disk, executable)"
 echo "  runtime:    $STAGE/runtime/linux      (staged on local disk, executable)"
 echo "  drive root: $ROOT"

@@ -6,7 +6,7 @@ Choosing, downloading and verifying the GGUF model the drive carries.
 
 ---
 
-PendriveAI v1 ships exactly one model.
+PenAI v1 ships exactly one model.
 
 | Field | Value |
 |---|---|
@@ -76,7 +76,7 @@ restarting the launcher.
 
 **What we actually tested.** Only **Qwen3-4B-Instruct-2507-Q4_K_M** has been
 tested by us: measured 13.2 tok/s generation, 50.3 tok/s prompt processing, and a
-6 second load, on the development machine described in [Starting PendriveAI](USAGE.md#starting-pendriveai). Everything
+6 second load, on the development machine described in [Starting PenAI](USAGE.md#starting-penai). Everything
 else listed below **should work, but was not tested here**.
 
 ## Same family, different size or quality
@@ -145,7 +145,7 @@ So for a 4B-class model, the KV cache costs about **0.6 GiB at ctx 4096** and
 about **1.2 GiB at ctx 8192**.
 
 The launcher computes this itself, warns when it is tight, and reduces the
-context automatically rather than letting the machine thrash. See [Starting PendriveAI](USAGE.md#starting-pendriveai).
+context automatically rather than letting the machine thrash. See [Starting PenAI](USAGE.md#starting-penai).
 
 ## Not supported in v1
 

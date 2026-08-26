@@ -1,9 +1,9 @@
 {
-  "name": "pendriveai-web",
+  "name": "penai-web",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Offline browser UI for PendriveAI. Talks only to the local llama.cpp server on 127.0.0.1.",
+  "description": "Offline browser UI for PenAI. Talks only to the local llama.cpp server on 127.0.0.1.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

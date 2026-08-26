@@ -40,7 +40,7 @@ TITLES = {
     'PENDRIVE.md': 'Preparing the pendrive',
     'BUILD.md': 'Building a release',
     'DEVELOPMENT.md': 'Development setup',
-    'USAGE.md': 'Running PendriveAI',
+    'USAGE.md': 'Running PenAI',
     'TROUBLESHOOTING.md': 'Troubleshooting',
     'LIMITATIONS.md': 'Known limitations',
     'PRIVACY.md': 'Privacy and security',
@@ -226,7 +226,7 @@ def convert(md: str) -> tuple[str, str]:
         out.append(f'<p>{inline(" ".join(para))}</p>')
 
     close_lists()
-    return title or 'PendriveAI', '\n'.join(out)
+    return title or 'PenAI', '\n'.join(out)
 
 
 def nav_html(current: str) -> str:
@@ -255,7 +255,7 @@ SHELL = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title} - PendriveAI docs</title>
+<title>{title} - PenAI docs</title>
 <meta name="description" content="{desc}">
 <link rel="icon" href="../assets/mark.svg">
 <link rel="stylesheet" href="../style.css">
@@ -263,7 +263,7 @@ SHELL = """<!doctype html>
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -275,7 +275,7 @@ SHELL = """<!doctype html>
 {nav}
 <article class="doc">
 {body}
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

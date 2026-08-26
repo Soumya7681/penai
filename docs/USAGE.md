@@ -1,4 +1,4 @@
-# Running PendriveAI
+# Running PenAI
 
 Starting the drive on Linux and Windows, and how the browser behaves.
 
@@ -6,24 +6,24 @@ Starting the drive on Linux and Windows, and how the browser behaves.
 
 ---
 
-## Starting PendriveAI
+## Starting PenAI
 
 **Linux, exFAT or any drive that allows execution:**
 
 ```bash
-cd /media/<you>/PENDRIVEAI
+cd /media/<you>/PENAI
 ./StartAI
 ```
 
 **Linux, FAT32 (or any `noexec` mount):**
 
 ```bash
-cd /media/<you>/PENDRIVEAI
+cd /media/<you>/PENAI
 sh StartAI.sh
 ```
 
 `StartAI.sh` copies the launcher and the llama.cpp runtime into a local temporary
-directory, marks them executable, and runs the launcher with `PENDRIVEAI_ROOT`
+directory, marks them executable, and runs the launcher with `PENAI_ROOT`
 pointing back at the pendrive. The model and the web assets are still read from
 the drive, so nothing large is copied.
 

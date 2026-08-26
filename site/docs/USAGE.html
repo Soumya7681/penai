@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Running PendriveAI - PendriveAI docs</title>
-<meta name="description" content="Running PendriveAI
+<title>Running PenAI - PenAI docs</title>
+<meta name="description" content="Running PenAI
 Starting the drive on Linux and Windows, and how the browser behaves.">
 <link rel="icon" href="../assets/mark.svg">
 <link rel="stylesheet" href="../style.css">
@@ -12,7 +12,7 @@ Starting the drive on Linux and Windows, and how the browser behaves.">
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -33,7 +33,7 @@ Starting the drive on Linux and Windows, and how the browser behaves.">
 <a href="BUILD.html">Building a release</a>
 <a href="DEVELOPMENT.html">Development setup</a>
 <span class="kicker">Live with it</span>
-<a href="USAGE.html" class="current">Running PendriveAI</a>
+<a href="USAGE.html" class="current">Running PenAI</a>
 <a href="TROUBLESHOOTING.html">Troubleshooting</a>
 <a href="LIMITATIONS.html">Known limitations</a>
 <a href="PRIVACY.html">Privacy and security</a>
@@ -42,17 +42,17 @@ Starting the drive on Linux and Windows, and how the browser behaves.">
 <a href="TESTING.html">Testing</a>
 </nav>
 <article class="doc">
-<h1>Running PendriveAI</h1>
+<h1>Running PenAI</h1>
 <p>Starting the drive on Linux and Windows, and how the browser behaves.</p>
 <hr>
-<h2 id="starting-pendriveai">Starting PendriveAI</h2>
+<h2 id="starting-penai">Starting PenAI</h2>
 <p><strong>Linux, exFAT or any drive that allows execution:</strong></p>
-<pre><code class="lang-bash">cd /media/&lt;you&gt;/PENDRIVEAI
+<pre><code class="lang-bash">cd /media/&lt;you&gt;/PENAI
 ./StartAI</code></pre>
 <p><strong>Linux, FAT32 (or any <code>noexec</code> mount):</strong></p>
-<pre><code class="lang-bash">cd /media/&lt;you&gt;/PENDRIVEAI
+<pre><code class="lang-bash">cd /media/&lt;you&gt;/PENAI
 sh StartAI.sh</code></pre>
-<p><code>StartAI.sh</code> copies the launcher and the llama.cpp runtime into a local temporary directory, marks them executable, and runs the launcher with <code>PENDRIVEAI_ROOT</code> pointing back at the pendrive. The model and the web assets are still read from the drive, so nothing large is copied.</p>
+<p><code>StartAI.sh</code> copies the launcher and the llama.cpp runtime into a local temporary directory, marks them executable, and runs the launcher with <code>PENAI_ROOT</code> pointing back at the pendrive. The model and the web assets are still read from the drive, so nothing large is copied.</p>
 <p><strong>Windows:</strong></p>
 <pre><code>StartAI.exe          (if you built it)
 StartAI.bat          (zero-compile fallback: double-click it, or run it from cmd)</code></pre>
@@ -129,7 +129,7 @@ StartAI.bat          (zero-compile fallback: double-click it, or run it from cmd
 <tr><td><code>POST /v1/chat/completions</code></td><td>Chat, with <code>"stream": true</code> for SSE</td></tr>
 <tr><td><code>GET /v1/models</code></td><td>Model listing</td></tr>
 </tbody></table></div>
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

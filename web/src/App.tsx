@@ -33,6 +33,7 @@ import type {
   Chat,
   EngineState,
   Message,
+  Paste,
   RuntimeConfig,
   Settings,
   StoreSnapshot,
@@ -72,6 +73,8 @@ export default function App() {
   const [portableBase, setPortableBase] = useState<string | null>(null)
   const [portableError, setPortableError] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
+  // Long pasted blocks wait here until the message is sent.
+  const [pastes, setPastes] = useState<Paste[]>([])
   const [busy, setBusy] = useState(false)
   const [banner, setBanner] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
@@ -112,7 +115,7 @@ export default function App() {
           try {
             await writeLocalAll(merged)
           } catch (e) {
-            console.warn('[PendriveAI] could not update local copy:', e)
+            console.warn('[PenAI] could not update local copy:', e)
           }
         }
       }
@@ -175,7 +178,7 @@ export default function App() {
         if (opts?.messages) await putMessagesLocal(opts.messages)
         if (!opts) await writeLocalAll(next)
       } catch (e) {
-        console.warn('[PendriveAI] local save failed:', e)
+        console.warn('[PenAI] local save failed:', e)
       }
       // Then the drive, if enabled and available.
       if (portableBase && settings?.portableStorage) {
@@ -246,6 +249,7 @@ export default function App() {
     })
     setActiveId(chat.id)
     setDraft('')
+    setPastes([])
     setBanner(null)
   }, [busy, persist])
 
@@ -280,7 +284,7 @@ export default function App() {
             const tomb = chats.find((c) => c.id === id)
             if (tomb) await putChatLocal(tomb)
           } catch (e) {
-            console.warn('[PendriveAI] delete failed locally:', e)
+            console.warn('[PenAI] delete failed locally:', e)
           }
           void persist(next)
         })()
@@ -355,6 +359,7 @@ export default function App() {
       })
       setActiveId(chatId)
       setDraft('')
+      setPastes([])
       setBanner(null)
       setBusy(true)
       pinnedRef.current = true
@@ -494,7 +499,7 @@ export default function App() {
       <div className="boot">
         <div className="boot-card">
           <BrandMark size={40} engine="starting" />
-          <h1>PendriveAI</h1>
+          <h1>PenAI</h1>
           <p>Loading the model from the drive. The first start is the slow one.</p>
           <div className="boot-bar" role="progressbar" aria-label="Starting" />
         </div>
@@ -609,6 +614,7 @@ export default function App() {
 
         <Composer
           value={draft}
+          pastes={pastes}
           busy={busy}
           disabled={!engineReady && !busy}
           disabledReason={
@@ -617,7 +623,11 @@ export default function App() {
               : 'The AI engine is not reachable.'
           }
           onChange={setDraft}
-          onSend={() => void send(draft)}
+          onAddPaste={(text) =>
+            setPastes((p) => [...p, { id: newId('paste'), text }])
+          }
+          onRemovePaste={(id) => setPastes((p) => p.filter((x) => x.id !== id))}
+          onSend={() => void send(composeMessage(pastes, draft))}
           onStop={stop}
         />
       </main>
@@ -658,7 +668,7 @@ function Welcome({
     <div className="welcome">
       <div className="welcome-top">
         <BrandMark size={32} />
-        <span className="kicker">PendriveAI</span>
+        <span className="kicker">PenAI</span>
       </div>
 
       <h1>Ask anything. Nothing leaves this computer.</h1>
@@ -677,6 +687,15 @@ function Welcome({
       </div>
     </div>
   )
+}
+
+/**
+ * The attachments come first and the typed question last, which is the order the
+ * model reads best: material, then the instruction about it.
+ */
+function composeMessage(pastes: Paste[], draft: string): string {
+  const parts = [...pastes.map((p) => p.text.trim()), draft.trim()]
+  return parts.filter(Boolean).join('\n\n')
 }
 
 function titleFrom(text: string): string {

@@ -66,7 +66,7 @@ impl Default for Config {
             ui_temperature: 0.7,
             ui_top_p: 0.95,
             ui_max_tokens: 1024,
-            ui_system_prompt: "You are PendriveAI, a helpful offline assistant running \
+            ui_system_prompt: "You are PenAI, a helpful offline assistant running \
                                entirely on the user's own computer. Be concise and correct. \
                                When you write code, use fenced code blocks with a language tag."
                 .to_string(),

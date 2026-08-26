@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Development setup - PendriveAI docs</title>
+<title>Development setup - PenAI docs</title>
 <meta name="description" content="Development setup
 Toolchains and the edit-run loop for changing the code.">
 <link rel="icon" href="../assets/mark.svg">
@@ -12,7 +12,7 @@ Toolchains and the edit-run loop for changing the code.">
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a href="../index.html"><img src="../assets/logo.svg" alt="PendriveAI"></a>
+    <a href="../index.html"><img src="../assets/wordmark.svg" alt="PenAI"></a>
     <nav>
       <a href="../index.html">Home</a>
       <a href="index.html">Docs</a>
@@ -33,7 +33,7 @@ Toolchains and the edit-run loop for changing the code.">
 <a href="BUILD.html">Building a release</a>
 <a href="DEVELOPMENT.html" class="current">Development setup</a>
 <span class="kicker">Live with it</span>
-<a href="USAGE.html">Running PendriveAI</a>
+<a href="USAGE.html">Running PenAI</a>
 <a href="TROUBLESHOOTING.html">Troubleshooting</a>
 <a href="LIMITATIONS.html">Known limitations</a>
 <a href="PRIVACY.html">Privacy and security</a>
@@ -46,7 +46,7 @@ Toolchains and the edit-run loop for changing the code.">
 <p>Toolchains and the edit-run loop for changing the code.</p>
 <hr>
 <blockquote>
-<p><strong>Just want a working drive?</strong> You do not need this section. Run <code>./scripts/build-all.sh --target /media/you/PENDRIVEAI</code> and skip to <a href="USAGE.html#starting-pendriveai">[Starting PendriveAI</a>](#starting-pendriveai). This section is for changing the code.</p>
+<p><strong>Just want a working drive?</strong> You do not need this section. Run <code>./scripts/build-all.sh --target /media/you/PENAI</code> and skip to <a href="USAGE.html#starting-penai">[Starting PenAI</a>](#starting-penai). This section is for changing the code.</p>
 </blockquote>
 <p>The development machine needs a Rust toolchain and Node.js. <strong>Neither is needed on the target computer.</strong></p>
 <div class="tablewrap"><table><thead><tr>
@@ -87,7 +87,7 @@ cargo test</code></pre>
 cd web &amp;&amp; npm run dev      # http://127.0.0.1:5173, API calls proxied to :8080</code></pre>
 <p><strong>Do not run <code>npm install</code> on the pendrive.</strong> It creates roughly 30,000 small files and needs symlinks, which FAT32 and exFAT cannot store and which a 3.4 MB/s drive will take a very long time to write. Keep <code>node_modules</code> and all build caches on local disk. The build scripts redirect Cargo output off the drive with <code>CARGO_TARGET_DIR</code> for the same reason.</p>
 <p><code>.gitignore</code> excludes <code>*.gguf</code>, <code>runtime/</code>, <code>release/</code>, <code>web/dist/</code>, <code>web/node_modules/</code>, <code>launcher/target/</code>, <code>data/</code> and <code>config/config.json</code>.</p>
-<p class="doc-foot">Part of the PendriveAI documentation. Everything here also
+<p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>
 </article>
 </div>

@@ -39,6 +39,16 @@ export interface Settings {
   theme: 'system' | 'dark' | 'light'
 }
 
+/**
+ * A block of text that arrived by paste and was too big to sit in the composer.
+ * It is held aside as an attachment until the message is sent, at which point it
+ * becomes part of the message content like anything else the user typed.
+ */
+export interface Paste {
+  id: string
+  text: string
+}
+
 export interface RuntimeConfig {
   /** Empty string means "same origin" -- the normal, packaged case. */
   apiBase: string

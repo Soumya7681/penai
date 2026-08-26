@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# build-linux.sh - full Linux release build for PendriveAI.
+# build-linux.sh - full Linux release build for PenAI.
 #
 # Steps: check tools -> build the Rust launcher -> run its tests -> build the
 # React UI -> check the llama.cpp runtime is staged -> call scripts/package.sh.
@@ -18,8 +18,8 @@
 #                          [--model <path>] [--version <str>] [--out <dir>] [--force]
 #
 # Environment:
-#   PENDRIVEAI_CARGO_TARGET_DIR   override the cargo build directory
-#   PENDRIVEAI_SCRATCH_DIR        override the scratch root used for both
+#   PENAI_CARGO_TARGET_DIR   override the cargo build directory
+#   PENAI_SCRATCH_DIR        override the scratch root used for both
 #                                 the cargo target dir and the web fallback
 #
 set -euo pipefail
@@ -90,9 +90,9 @@ fi
 [ "$MISSING" -eq 0 ] || die "required tools are missing; see the hints above."
 
 # --------------------------------------------------- scratch / target dirs ----
-SCRATCH_ROOT="${PENDRIVEAI_SCRATCH_DIR:-${TMPDIR:-/tmp}/pendriveai-build}"
-if [ -n "${PENDRIVEAI_CARGO_TARGET_DIR:-}" ]; then
-  TARGET_DIR="$PENDRIVEAI_CARGO_TARGET_DIR"
+SCRATCH_ROOT="${PENAI_SCRATCH_DIR:-${TMPDIR:-/tmp}/penai-build}"
+if [ -n "${PENAI_CARGO_TARGET_DIR:-}" ]; then
+  TARGET_DIR="$PENAI_CARGO_TARGET_DIR"
 elif [ -n "${CARGO_TARGET_DIR:-}" ]; then
   TARGET_DIR="$CARGO_TARGET_DIR"
 else
@@ -100,14 +100,14 @@ else
 fi
 
 mkdir -p "$TARGET_DIR" || die "cannot create the build directory: $TARGET_DIR
-    Set PENDRIVEAI_CARGO_TARGET_DIR to a writable location on local disk."
+    Set PENAI_CARGO_TARGET_DIR to a writable location on local disk."
 export CARGO_TARGET_DIR="$TARGET_DIR"
 
 step "Build directories"
 say "cargo target dir: $CARGO_TARGET_DIR"
 say "  Reason: the repo may live on a FAT32/exFAT USB drive, which cannot host a"
 say "  Rust build cache (no symlinks, no hard links, very slow on small files)."
-say "  Override with PENDRIVEAI_CARGO_TARGET_DIR=/some/path."
+say "  Override with PENAI_CARGO_TARGET_DIR=/some/path."
 say "scratch root:     $SCRATCH_ROOT"
 
 # ------------------------------------------------------- build the launcher ---
@@ -139,7 +139,7 @@ say "built: $BIN ($(du -h "$BIN" | cut -f1))"
 # ------------------------------------------------------------ build the UI ----
 supports_symlinks() {
   # supports_symlinks <dir>
-  local probe="$1/.pendriveai-symlink-test.$$"
+  local probe="$1/.penai-symlink-test.$$"
   rm -f "$probe" 2>/dev/null || true
   if ln -s . "$probe" 2>/dev/null; then
     rm -f "$probe" 2>/dev/null || true
@@ -150,7 +150,7 @@ supports_symlinks() {
 }
 
 can_write_node_modules() {
-  local probe="$ROOT/web/node_modules/.pendriveai-write-test.$$"
+  local probe="$ROOT/web/node_modules/.penai-write-test.$$"
   mkdir -p "$(dirname "$probe")" 2>/dev/null || return 1
   if : > "$probe" 2>/dev/null; then
     rm -f "$probe" 2>/dev/null || true
@@ -258,5 +258,5 @@ step "Packaging"
 "$SCRIPT_DIR/package.sh" --platform linux ${PKG_ARGS[@]+"${PKG_ARGS[@]}"}
 
 step "Linux build complete"
-say "Release: ${ROOT}/release/linux/PendriveAI (unless --out changed it)"
+say "Release: ${ROOT}/release/linux/PenAI (unless --out changed it)"
 say "Deploy:  scripts/deploy-to-pendrive.sh --target /path/to/mountpoint --platform linux"

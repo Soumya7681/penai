@@ -31,7 +31,7 @@ const FALLBACK_CONFIG: RuntimeConfig = {
     maxTokens: 1024,
     ctxSize: 4096,
     systemPrompt:
-      'You are PendriveAI, a helpful offline assistant running entirely on the ' +
+      'You are PenAI, a helpful offline assistant running entirely on the ' +
       "user's own computer. Be concise and correct. When you write code, use " +
       'fenced code blocks with a language tag.',
   },
@@ -52,7 +52,7 @@ function assertLocal(base: string): string {
   const ok =
     u.protocol === 'http:' && (u.hostname === '127.0.0.1' || u.hostname === 'localhost')
   if (!ok) {
-    console.error('[PendriveAI] refusing non-loopback API base:', base)
+    console.error('[PenAI] refusing non-loopback API base:', base)
     return ''
   }
   return u.origin
@@ -253,7 +253,7 @@ function handleFrame(frame: string, cb: StreamCallbacks): void {
     } catch {
       // A partial frame should be impossible here, but never let one bad chunk
       // abort a whole answer.
-      console.warn('[PendriveAI] skipping unparseable SSE payload')
+      console.warn('[PenAI] skipping unparseable SSE payload')
       continue
     }
 

@@ -142,6 +142,9 @@ fn handle(s: TcpStream, file: &Path, allowed: &[String]) -> std::io::Result<()> 
         ("GET", "/api/health") => {
             let body = Json::obj(vec![
                 ("ok", Json::Bool(true)),
+                // Wire identity, not a brand name: the page matches on this
+                // exact string, and an older packaged drive serves a page that
+                // only knows the pre-rename value.
                 ("kind", Json::s("pendriveai-store")),
                 ("maxBody", Json::n(MAX_BODY as f64)),
             ])
