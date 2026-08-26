@@ -10,7 +10,7 @@ here is aspirational. If a capability is not listed under "Automated",
 
 | Category | Status |
 |---|---|
-| Rust unit tests | **84 pass** (`cargo test`) |
+| Rust unit tests | **85 pass** (`cargo test`) |
 | Manual integration, Linux x86_64 | Done, with the real model and the real engine |
 | Filesystem behaviour | Measured on the real pendrive |
 | Windows end to end | **Not tested** |
@@ -28,7 +28,7 @@ cargo test
 
 ## Automated
 
-84 Rust unit tests pass (`cargo test`), covering:
+85 Rust unit tests pass (`cargo test`), covering:
 
 **Parsing and configuration**
 
@@ -118,6 +118,25 @@ RAM, with the model on a local SSD, context 4096 and 6 threads.
 - Symlinks and hard links not permitted.
 - Case-insensitive.
 - 3.4 MB/s writes.
+
+---
+
+## Static checks only, `release-assets/StartAI.bat`
+
+There is no Windows machine here, so the fallback launcher was never executed.
+What *was* checked, on Linux, is only this:
+
+- The file is pure ASCII with CRLF line endings, and `file(1)` identifies it as
+  a DOS batch file.
+- The self-extraction mechanism was simulated: `LastIndexOf('#@PSBEGIN@')` plus
+  `Substring($i+10)` yields exactly the PowerShell section, the batch section
+  terminates with `endlocal & exit /b` before the marker, and the marker's last
+  occurrence is the real one rather than either mention in the header.
+- Quotes, parentheses, brackets and braces in the PowerShell section balance
+  under a tokenizer that understands `''` and backtick escapes.
+
+None of that is a substitute for running it. Balanced braces are not a parse,
+and a parse is not a working launcher.
 
 ---
 

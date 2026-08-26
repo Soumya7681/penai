@@ -362,8 +362,15 @@ It is harder in two respects:
   x86_64-pc-windows-gnu`.
 - **A zero-compile fallback is shipped instead.** `StartAI.bat` uses only
   `cmd.exe` and PowerShell, both built into Windows, so the drive is usable on a
-  Windows machine with no compiler present. It does not reproduce the RAM gate,
-  the port scan, the single-instance guard or log rotation.
+  Windows machine with no compiler present. It is one file: a batch header that
+  reads the file back, cuts everything after a `#@PSBEGIN@` marker and hands
+  that text to PowerShell as a *command*, so no temporary `.ps1` is written and
+  the script-file execution policy does not apply.
+
+  It reproduces config parsing, model resolution, the thread rule, the port
+  scan, `web/runtime-config.json`, the llama-server argv and the health wait.
+  It does not reproduce the RAM gate (it warns but never reduces the context),
+  the single-instance guard, log rotation or the chat-history sidecar.
 
 **The entire Windows path is untested on real Windows hardware.** `StartAI.bat`
 is untested. Treat both as design intent that has been written but not

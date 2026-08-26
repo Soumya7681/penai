@@ -26,7 +26,7 @@ Read this before you judge anything below as "done".
 - Real Server-Sent Events streaming with token deltas and a `data: [DONE]` terminator.
 - Client-side abort (stop generation) leaving the server healthy and the slot freed.
 - Measured 13.2 tokens/second generation and 50.3 tokens/second prompt processing.
-- The Rust launcher: 84 unit tests pass with `cargo test`.
+- The Rust launcher: 85 unit tests pass with `cargo test`.
 - Real pendrive filesystem behaviour under FAT32 with the `showexec` mount option.
 
 **Not built here:**
@@ -490,9 +490,25 @@ cargo build --release --target x86_64-pc-windows-gnu
 
 **Option C, ship no compiler at all.** A zero-compile fallback launcher,
 `StartAI.bat`, is included on the drive so Windows is usable without any
-toolchain. It uses only `cmd.exe` and PowerShell, both built into Windows. It is
-a fallback, not a replacement: it does not have the launcher's RAM gate, port
-scanning, single-instance guard or log rotation. `StartAI.bat` is also untested.
+toolchain. It uses only `cmd.exe` and PowerShell, both built into Windows.
+
+It reproduces the parts of the launcher that the drive cannot work without:
+it reads `config/config.json`, resolves the model the same way (explicit config
+entry, then `model.gguf`, then the largest `.gguf`), rejects a truncated or
+non-GGUF file, picks threads with the same rule, scans for a free loopback port,
+writes `web/runtime-config.json`, starts `llama-server` with the same argv,
+waits for `/v1/health` and opens the browser.
+
+It is still a fallback, not a replacement. Four things are missing:
+
+| Missing | Consequence |
+|---|---|
+| The RAM gate | It measures RAM and warns, but never reduces the context or refuses to start |
+| The single-instance guard | Running it twice starts two servers on two ports |
+| Rotating log files | `llama-server` writes to the console window instead of `data/logs/` |
+| The chat-history sidecar | Chats stay in that browser's storage on that computer and do not travel with the drive |
+
+`StartAI.bat` is untested on real Windows hardware.
 
 The Windows runtime itself needs no compiler. `scripts/fetch-runtime.ps1`
 downloads and trims `llama-b10549-bin-win-cpu-x64.zip`, and
@@ -509,7 +525,7 @@ cd web && npm install && npm run build && cd ..
 ./scripts/package.sh           # assembles the final release/ folder
 ```
 
-`cargo test` should report 84 passing tests before you package anything.
+`cargo test` should report 85 passing tests before you package anything.
 
 The packaging script does one non-obvious job. The llama.cpp archives contain
 symlinks such as `libggml-base.so -> libggml-base.so.0.20.2`, and neither FAT32
@@ -826,8 +842,12 @@ the drive, so nothing large is copied.
 
 ```
 StartAI.exe          (if you built it)
-StartAI.bat          (zero-compile fallback)
+StartAI.bat          (zero-compile fallback: double-click it, or run it from cmd)
 ```
+
+`StartAI.bat` needs nothing installed, but chats started under it stay in that
+browser's storage on that computer rather than on the drive, and closing the
+console window stops the engine. Section 10 lists everything it does not do.
 
 **CLI flags:**
 
@@ -1110,6 +1130,8 @@ Four consequences follow.
 - **Windows launcher is not built and not tested here.** No mingw-w64 and no
   MSVC toolchain on the build machine. `StartAI.bat` is shipped as a
   zero-compile fallback and is also untested.
+- **`StartAI.bat` has no single-instance guard, no RAM gate, no log rotation
+  and no portable chat history.** See section 10 for the full list.
 - **macOS is not supported in v1.** No runtime is shipped for it, and the memory
   probe returns unknown.
 - **No GPU acceleration.** A CPU-only build was chosen deliberately, for
