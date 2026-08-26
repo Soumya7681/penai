@@ -101,6 +101,12 @@ mod tests {
         p
     }
 
+    /// Ask the OS for a port, then let go of it so `acquire` can take it.
+    ///
+    /// There is an unavoidable gap between releasing the probe socket and
+    /// binding it again, and on a busy machine another process can win that
+    /// race. Callers retry rather than assert, because the flakiness is in the
+    /// probe, not in the code under test.
     fn free_port() -> u16 {
         let l = TcpListener::bind(loopback(0)).unwrap();
         let p = l.local_addr().unwrap().port();
@@ -108,25 +114,29 @@ mod tests {
         p
     }
 
+    /// Acquire on a port that is genuinely free right now, retrying past any
+    /// unrelated process that grabs the probed port first.
+    fn acquire_free(dir: &Path) -> (u16, Guard) {
+        for _ in 0..25 {
+            let p = free_port();
+            if let Acquire::Acquired(g) = acquire(p, dir) {
+                return (p, g);
+            }
+        }
+        panic!("no free sentinel port after 25 attempts");
+    }
+
     #[test]
     fn first_instance_acquires() {
         let d = tmp("first");
-        let p = free_port();
-        match acquire(p, &d) {
-            Acquire::Acquired(_) => {}
-            _ => panic!("first acquire should succeed"),
-        }
+        let (_p, _g) = acquire_free(&d);
         fs::remove_dir_all(&d).ok();
     }
 
     #[test]
     fn second_instance_is_refused_and_learns_the_url() {
         let d = tmp("second");
-        let p = free_port();
-        let g = match acquire(p, &d) {
-            Acquire::Acquired(g) => g,
-            _ => panic!("first acquire should succeed"),
-        };
+        let (p, g) = acquire_free(&d);
         g.publish("http://127.0.0.1:8080", 8080, Some(47611));
 
         match acquire(p, &d) {
@@ -143,22 +153,22 @@ mod tests {
     #[test]
     fn lock_is_released_when_guard_drops() {
         let d = tmp("release");
-        let p = free_port();
-        {
-            let g = match acquire(p, &d) {
-                Acquire::Acquired(g) => g,
-                _ => panic!(),
-            };
+        // Retry the whole scenario: the re-acquire can also lose the port to an
+        // unrelated process, which would say nothing about the guard.
+        for _ in 0..25 {
+            let (p, g) = acquire_free(&d);
             g.publish("http://127.0.0.1:1", 1, None);
-            assert!(g.info_path().exists());
+            assert!(g.info_path().exists(), "publish must write the info file");
+            drop(g);
+
+            // Guard dropped: the info file is gone and the port is free again.
+            assert!(!d.join(INSTANCE_FILE).exists(), "info file must be cleaned up");
+            if let Acquire::Acquired(_) = acquire(p, &d) {
+                fs::remove_dir_all(&d).ok();
+                return;
+            }
         }
-        // Guard dropped: the port is free again and the info file is gone.
-        assert!(!d.join(INSTANCE_FILE).exists(), "info file must be cleaned up");
-        match acquire(p, &d) {
-            Acquire::Acquired(_) => {}
-            _ => panic!("port should be reusable after the guard drops"),
-        }
-        fs::remove_dir_all(&d).ok();
+        panic!("port never became reusable after the guard dropped");
     }
 
     #[test]
