@@ -583,34 +583,36 @@ export default function App() {
           </div>
         )}
 
-        <div className="scroll" ref={scrollRef} onScroll={onScroll}>
-          {!activeChat || messages.length === 0 ? (
-            <Welcome
-              modelName={cfg.modelName}
-              onPick={(q) => {
-                setDraft(q)
-              }}
-            />
-          ) : (
-            <div className="thread">
-              {messages.map((m) => (
-                <MessageBubble
-                  key={m.id}
-                  message={m}
-                  streaming={busy && m.role === 'assistant' && m === messages[messages.length - 1]}
-                  onRetry={m.role === 'assistant' && !busy ? () => retry(m.id) : undefined}
-                />
-              ))}
-            </div>
+        <div className="thread-area">
+          <div className="scroll" ref={scrollRef} onScroll={onScroll}>
+            {!activeChat || messages.length === 0 ? (
+              <Welcome
+                modelName={cfg.modelName}
+                onPick={(q) => {
+                  setDraft(q)
+                }}
+              />
+            ) : (
+              <div className="thread">
+                {messages.map((m) => (
+                  <MessageBubble
+                    key={m.id}
+                    message={m}
+                    streaming={busy && m.role === 'assistant' && m === messages[messages.length - 1]}
+                    onRetry={m.role === 'assistant' && !busy ? () => retry(m.id) : undefined}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {showJump && (
+            <button type="button" className="jump" onClick={jumpToLatest}>
+              <Icon name="arrowDown" size={15} />
+              Latest message
+            </button>
           )}
         </div>
-
-        {showJump && (
-          <button type="button" className="jump" onClick={jumpToLatest}>
-            <Icon name="arrowDown" size={15} />
-            Latest message
-          </button>
-        )}
 
         <Composer
           value={draft}

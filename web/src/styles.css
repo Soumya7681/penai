@@ -768,6 +768,14 @@ a {
 
 /* ----------------------------------------------------------------- thread */
 
+.thread-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .scroll {
   flex: 1 1 auto;
   min-height: 0;
@@ -798,16 +806,21 @@ a {
   align-items: flex-end;
 }
 
+.turn-user .turn-body {
+  max-width: 85%;
+}
+
 .bubble {
   position: relative;
-  max-width: 85%;
+  width: fit-content;
+  max-width: 100%;
   padding: 10px 14px;
   border: 1px solid var(--border);
   border-radius: var(--r-lg) var(--r-lg) 4px var(--r-lg);
   background: var(--bg-panel);
   box-shadow: var(--shadow-sm);
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .bubble-clamped {
@@ -868,7 +881,7 @@ a {
 
 .turn-body {
   min-width: 0;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .msg-empty {
@@ -993,7 +1006,7 @@ a {
 .jump {
   position: absolute;
   left: 50%;
-  bottom: 14px;
+  bottom: 16px;
   transform: translateX(-50%);
   z-index: 5;
   display: inline-flex;
