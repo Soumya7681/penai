@@ -26,6 +26,7 @@ export type IconName =
   | 'upload'
   | 'panelLeft'
   | 'paste'
+  | 'globe'
 
 const PATHS: Record<IconName, ReactNode> = {
   menu: (
@@ -115,6 +116,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <rect x="5" y="4.5" width="14" height="16" rx="2.5" />
       <path d="M9 4.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 4.5v1H9z" />
       <path d="M8.5 11h7M8.5 15h4.5" />
+    </>
+  ),
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M3.5 12h17" />
+      <path d="M12 3.5c2.2 2.3 3.4 5.3 3.4 8.5S14.2 18.2 12 20.5c-2.2-2.3-3.4-5.3-3.4-8.5S9.8 5.8 12 3.5z" />
     </>
   ),
   panelLeft: (

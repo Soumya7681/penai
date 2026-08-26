@@ -11,6 +11,7 @@
 mod browser;
 mod child;
 mod config;
+mod fetch;
 mod json;
 mod lock;
 mod logging;
@@ -404,6 +405,12 @@ fn run() -> Result<(), String> {
             cfg.store_port,
             layout.chats_dir.clone(),
             origins,
+            fetch::Policy {
+                enabled: cfg.network_enabled,
+                timeout: std::time::Duration::from_secs(cfg.network_timeout_secs),
+                max_bytes: cfg.network_max_bytes,
+                ..fetch::Policy::default()
+            },
             log.clone(),
         ) {
             Ok(s) => {

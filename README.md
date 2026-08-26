@@ -38,6 +38,11 @@ the page and the model API share one local port.
 Nothing leaves the machine. No account, no telemetry, and after the drive is
 prepared, no network dependency of any kind.
 
+There is one deliberate exception, and it is off until you turn it on: with
+`"network": { "enabled": true }` in `config.json`, a globe button appears next to
+the composer and you can fetch one page at a time by address. See
+[Fetching a web page](docs/USAGE.md#fetching-a-web-page).
+
 ## Quick start
 
 **You have a finished drive:**
@@ -69,7 +74,7 @@ nothing to repeat, and a UI-only change rebuilds only the UI.
 
 | | |
 | --- | --- |
-| **Genuinely offline** | The page's own Content-Security-Policy limits it to `127.0.0.1`. Unplug the network and nothing changes. |
+| **Offline unless you say otherwise** | The page's own Content-Security-Policy limits it to `127.0.0.1`. Unplug the network and nothing changes. Optional web fetch is off by default, one page at a time, and never initiated by the model. |
 | **Nothing to install** | No runtime on the host machine. No admin rights. No registry, no PATH, no leftovers. |
 | **Portable history** | Chats are written to the drive as JSON, so they travel with it, with an IndexedDB copy for speed. |
 | **Honest about the machine** | The readout strip shows the live engine state, the model file, the llama.cpp build, the real context size and where history is stored. |

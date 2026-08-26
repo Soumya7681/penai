@@ -17,6 +17,7 @@
 //! If it cannot start (read-only drive, port taken) the UI silently falls back
 //! to IndexedDB, so this is an enhancement and never a hard dependency.
 
+use crate::fetch;
 use crate::json::Json;
 use crate::logging::Logger;
 use crate::net::loopback;
@@ -33,6 +34,8 @@ pub const MAX_BODY: usize = 32 * 1024 * 1024;
 const MAX_HEADERS: usize = 64;
 const MAX_HEADER_LINE: usize = 8 * 1024;
 const MAX_CONNS: usize = 16;
+/// A fetch request is a single URL, so anything larger is a mistake or an abuse.
+const MAX_FETCH_REQUEST: usize = 4 * 1024;
 
 pub struct Store {
     pub port: u16,
@@ -46,6 +49,7 @@ impl Store {
         port: u16,
         chats_dir: PathBuf,
         allowed_origins: Vec<String>,
+        fetch_policy: fetch::Policy,
         log: Logger,
     ) -> std::io::Result<Store> {
         let listener = TcpListener::bind(loopback(port))?;
@@ -53,6 +57,7 @@ impl Store {
         let stop = Arc::new(AtomicBool::new(false));
         let stop_thread = Arc::clone(&stop);
         let conns = Arc::new(AtomicUsize::new(0));
+        let policy = Arc::new(fetch_policy);
 
         std::thread::spawn(move || {
             let file = chats_dir.join("chats.json");
@@ -77,8 +82,9 @@ impl Store {
                 let origins = allowed_origins.clone();
                 let log = log.clone();
                 let conns2 = Arc::clone(&conns);
+                let policy = Arc::clone(&policy);
                 std::thread::spawn(move || {
-                    if let Err(e) = handle(stream, &file, &origins) {
+                    if let Err(e) = handle(stream, &file, &origins, &policy) {
                         log.trace(format!("store: connection error: {}", e));
                     }
                     conns2.fetch_sub(1, Ordering::SeqCst);
@@ -107,7 +113,12 @@ struct Request {
     content_length: usize,
 }
 
-fn handle(s: TcpStream, file: &Path, allowed: &[String]) -> std::io::Result<()> {
+fn handle(
+    s: TcpStream,
+    file: &Path,
+    allowed: &[String],
+    policy: &fetch::Policy,
+) -> std::io::Result<()> {
     s.set_read_timeout(Some(Duration::from_secs(15)))?;
     s.set_write_timeout(Some(Duration::from_secs(15)))?;
 
@@ -147,9 +158,69 @@ fn handle(s: TcpStream, file: &Path, allowed: &[String]) -> std::io::Result<()> 
                 // only knows the pre-rename value.
                 ("kind", Json::s("pendriveai-store")),
                 ("maxBody", Json::n(MAX_BODY as f64)),
+                // The page uses this to decide whether to offer the fetch
+                // control at all, so an off switch is never a dead button.
+                ("fetch", Json::Bool(policy.enabled)),
             ])
             .dump();
             respond(s, 200, "application/json", body.as_bytes(), cors)
+        }
+
+        // Fetch one page the user explicitly asked for. Off unless config.json
+        // turns it on; see the module docs in fetch.rs for the threat model.
+        ("POST", "/api/fetch") => {
+            if !policy.enabled {
+                let msg = json_error(&fetch::Error::Disabled.to_string());
+                return respond(s, 403, "application/json", msg.as_bytes(), cors);
+            }
+            if req.content_length > MAX_FETCH_REQUEST {
+                return respond(
+                    s,
+                    413,
+                    "application/json",
+                    b"{\"error\":\"request too large\"}",
+                    cors,
+                );
+            }
+            let mut body = vec![0u8; req.content_length];
+            reader.read_exact(&mut body)?;
+            let url = match std::str::from_utf8(&body)
+                .ok()
+                .and_then(|t| Json::parse(t).ok())
+                .and_then(|v| v.get("url").and_then(Json::as_str).map(str::to_string))
+            {
+                Some(u) => u,
+                None => {
+                    let msg = json_error("send {\"url\": \"https://...\"}");
+                    return respond(s, 400, "application/json", msg.as_bytes(), cors);
+                }
+            };
+
+            match fetch::fetch(&url, policy) {
+                Ok(page) => {
+                    let doc = Json::obj(vec![
+                        ("ok", Json::Bool(true)),
+                        ("url", Json::s(&page.url)),
+                        ("title", Json::s(&page.title)),
+                        ("text", Json::s(&page.text)),
+                        ("bytes", Json::n(page.bytes as f64)),
+                        ("truncated", Json::Bool(page.truncated)),
+                    ])
+                    .dump();
+                    respond(s, 200, "application/json", doc.as_bytes(), cors)
+                }
+                Err(e) => {
+                    let code = match e {
+                        fetch::Error::Disabled => 403,
+                        fetch::Error::BadUrl(_) => 400,
+                        fetch::Error::Blocked(_) => 403,
+                        fetch::Error::NoCurl => 501,
+                        fetch::Error::Transport(_) => 502,
+                    };
+                    let msg = json_error(&e.to_string());
+                    respond(s, code, "application/json", msg.as_bytes(), cors)
+                }
+            }
         }
 
         ("GET", "/api/chats") => match std::fs::read(file) {
@@ -320,6 +391,11 @@ fn is_loopback_host(host: &str) -> bool {
     matches!(h, "127.0.0.1" | "localhost" | "::1")
 }
 
+/// One JSON error shape, so the page never has to guess at the wire format.
+fn json_error(message: &str) -> String {
+    Json::obj(vec![("ok", Json::Bool(false)), ("error", Json::s(message))]).dump()
+}
+
 fn respond(
     mut s: TcpStream,
     status: u16,
@@ -377,10 +453,14 @@ mod tests {
     }
 
     fn boot(tag: &str) -> (Store, PathBuf, String) {
+        boot_with(tag, fetch::Policy::default())
+    }
+
+    fn boot_with(tag: &str, policy: fetch::Policy) -> (Store, PathBuf, String) {
         let dir = tmpdir(tag);
         let origin = "http://127.0.0.1:8080".to_string();
         let log = Logger::new(dir.join("t.log"), 65536, 1, false);
-        let s = Store::start(0, dir.clone(), vec![origin.clone()], log).unwrap();
+        let s = Store::start(0, dir.clone(), vec![origin.clone()], policy, log).unwrap();
         (s, dir, origin)
     }
 
@@ -406,6 +486,24 @@ mod tests {
             &format!(
                 "GET {} HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n{}Connection: close\r\n\r\n",
                 path, port, o
+            ),
+        )
+    }
+
+    fn post(port: u16, path: &str, body: &str, origin: Option<&str>) -> (String, String) {
+        let o = origin
+            .map(|o| format!("Origin: {}\r\n", o))
+            .unwrap_or_default();
+        raw(
+            port,
+            &format!(
+                "POST {} HTTP/1.1\r\nHost: 127.0.0.1:{}\r\n{}Content-Type: application/json\r\n\
+                 Content-Length: {}\r\nConnection: close\r\n\r\n{}",
+                path,
+                port,
+                o,
+                body.len(),
+                body
             ),
         )
     }
@@ -521,6 +619,57 @@ mod tests {
         s.shutdown();
         std::fs::remove_dir_all(&dir).ok();
     }
+
+    #[test]
+    fn fetch_is_refused_when_the_config_leaves_it_off() {
+        let (s, dir, o) = boot("fetchoff");
+        let (st, body) = post(s.port, "/api/fetch", "{\"url\":\"https://example.com\"}", Some(&o));
+        assert!(st.contains("403"), "{}", st);
+        assert!(body.contains("web access is off"), "{}", body);
+        s.shutdown();
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn health_reports_whether_fetching_is_available() {
+        let (off, d1, o1) = boot("fetchflagoff");
+        let (_, body) = get(off.port, "/api/health", Some(&o1));
+        assert!(body.contains("\"fetch\":false"), "{}", body);
+        off.shutdown();
+        std::fs::remove_dir_all(d1).ok();
+
+        let on = fetch::Policy { enabled: true, ..fetch::Policy::default() };
+        let (s, d2, o2) = boot_with("fetchflagon", on);
+        let (_, body) = get(s.port, "/api/health", Some(&o2));
+        assert!(body.contains("\"fetch\":true"), "{}", body);
+        s.shutdown();
+        std::fs::remove_dir_all(d2).ok();
+    }
+
+    #[test]
+    fn fetch_refuses_a_private_address_even_when_enabled() {
+        let on = fetch::Policy { enabled: true, ..fetch::Policy::default() };
+        let (s, dir, o) = boot_with("fetchprivate", on);
+        for url in ["http://127.0.0.1:9/", "http://192.168.0.1/", "http://localhost/"] {
+            let payload = format!("{{\"url\":\"{}\"}}", url);
+            let (st, body) = post(s.port, "/api/fetch", &payload, Some(&o));
+            assert!(st.contains("403"), "{} -> {}", url, st);
+            assert!(body.contains("refused"), "{} -> {}", url, body);
+        }
+        s.shutdown();
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn fetch_rejects_a_body_without_a_url() {
+        let on = fetch::Policy { enabled: true, ..fetch::Policy::default() };
+        let (s, dir, o) = boot_with("fetchnourl", on);
+        let (st, _) = post(s.port, "/api/fetch", "{\"nope\":1}", Some(&o));
+        assert!(st.contains("400"), "{}", st);
+        s.shutdown();
+        std::fs::remove_dir_all(dir).ok();
+    }
+
 
     #[test]
     fn unknown_route_is_404_and_touches_no_files() {

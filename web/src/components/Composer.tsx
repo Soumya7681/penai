@@ -8,9 +8,12 @@ interface Props {
   busy: boolean
   disabled: boolean
   disabledReason?: string | undefined
+  /** True only when the launcher's config turns web access on. */
+  canFetch: boolean
   onChange(v: string): void
   onAddPaste(text: string): void
   onRemovePaste(id: string): void
+  onFetch(url: string): Promise<void>
   onSend(): void
   onStop(): void
 }
@@ -31,14 +34,42 @@ export function Composer({
   busy,
   disabled,
   disabledReason,
+  canFetch,
   onChange,
   onAddPaste,
   onRemovePaste,
+  onFetch,
   onSend,
   onStop,
 }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null)
+  const urlRef = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState<string | null>(null)
+  const [urlOpen, setUrlOpen] = useState(false)
+  const [url, setUrl] = useState('')
+  const [fetching, setFetching] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (urlOpen) urlRef.current?.focus()
+  }, [urlOpen])
+
+  const runFetch = async () => {
+    const target = url.trim()
+    if (!target || fetching) return
+    setFetching(true)
+    setFetchError(null)
+    try {
+      // A bare domain is what people actually type.
+      await onFetch(/^https?:\/\//i.test(target) ? target : `https://${target}`)
+      setUrl('')
+      setUrlOpen(false)
+    } catch (e) {
+      setFetchError((e as Error).message)
+    } finally {
+      setFetching(false)
+    }
+  }
 
   // Grow with the content, up to a ceiling, then scroll.
   useEffect(() => {
@@ -85,9 +116,9 @@ export function Composer({
                     aria-expanded={open === p.id}
                     title={open === p.id ? 'Hide the pasted text' : 'Show the pasted text'}
                   >
-                    <Icon name="paste" size={14} />
+                    <Icon name={p.source ? 'globe' : 'paste'} size={14} />
                     <span className="paste-name">
-                      Pasted text{pastes.length > 1 ? ` ${i + 1}` : ''}
+                      {p.source ?? `Pasted text${pastes.length > 1 ? ` ${i + 1}` : ''}`}
                     </span>
                     <span className="paste-meta">{describe(p.text)}</span>
                   </button>
@@ -114,6 +145,56 @@ export function Composer({
             </div>
           )}
 
+          {urlOpen && (
+            <div className="urlbar">
+              <Icon name="globe" size={15} />
+              <input
+                ref={urlRef}
+                className="urlbar-input"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="example.com/page"
+                aria-label="Address to fetch"
+                spellCheck={false}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    void runFetch()
+                  }
+                  if (e.key === 'Escape') {
+                    setUrlOpen(false)
+                    setFetchError(null)
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="btn btn-primary btn-small"
+                onClick={() => void runFetch()}
+                disabled={!url.trim() || fetching}
+              >
+                {fetching ? 'Fetching' : 'Fetch'}
+              </button>
+              <button
+                type="button"
+                className="icon-btn icon-btn-sm"
+                onClick={() => {
+                  setUrlOpen(false)
+                  setFetchError(null)
+                }}
+                aria-label="Cancel"
+              >
+                <Icon name="close" size={15} />
+              </button>
+            </div>
+          )}
+
+          {fetchError && (
+            <p className="urlbar-error" role="alert">
+              {fetchError}
+            </p>
+          )}
+
           <div className="composer-row">
             <textarea
               ref={ref}
@@ -125,7 +206,9 @@ export function Composer({
                 disabled
                   ? (disabledReason ?? 'Waiting for the engine')
                   : pastes.length
-                    ? 'Add a question about the pasted text, or send it as it is'
+                    ? `Add a question about the ${
+                        pastes.some((p) => p.source) ? 'page' : 'pasted text'
+                      }, or send it as it is`
                     : 'Ask anything'
               }
               onChange={(e) => onChange(e.target.value)}
@@ -138,6 +221,22 @@ export function Composer({
               }}
               aria-label="Message"
             />
+
+            {canFetch && !busy && (
+              <button
+                type="button"
+                className={`icon-btn ${urlOpen ? 'icon-btn-on' : ''}`}
+                onClick={() => {
+                  setUrlOpen((v) => !v)
+                  setFetchError(null)
+                }}
+                title="Fetch a web page"
+                aria-label="Fetch a web page"
+                aria-expanded={urlOpen}
+              >
+                <Icon name="globe" size={18} />
+              </button>
+            )}
 
             {busy ? (
               <button type="button" className="stop-btn" onClick={onStop}>

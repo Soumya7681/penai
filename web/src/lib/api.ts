@@ -302,3 +302,38 @@ async function describeHttpError(res: Response): Promise<string> {
   }
   return `Engine error (HTTP ${res.status})${detail ? `: ${detail}` : ''}`
 }
+
+// ------------------------------------------------------------------- fetch
+
+export interface FetchedPage {
+  url: string
+  title: string
+  text: string
+  bytes: number
+  truncated: boolean
+}
+
+/**
+ * Ask the launcher to retrieve one page.
+ *
+ * The browser cannot do this itself, and that is deliberate: the page's own
+ * Content-Security-Policy allows nothing but 127.0.0.1, so the request goes to
+ * the local sidecar, which checks the address and refuses anything on this
+ * machine or this network. Off unless config.json turns it on.
+ */
+export async function fetchPage(storeBase: string, url: string): Promise<FetchedPage> {
+  const r = await fetch(`${storeBase}/api/fetch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  })
+  const j = (await r.json().catch(() => ({}))) as Partial<FetchedPage> & { error?: string }
+  if (!r.ok) throw new Error(j.error || `the launcher answered ${r.status}`)
+  return {
+    url: j.url ?? url,
+    title: j.title ?? '',
+    text: j.text ?? '',
+    bytes: j.bytes ?? 0,
+    truncated: j.truncated === true,
+  }
+}

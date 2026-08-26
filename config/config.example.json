@@ -86,6 +86,27 @@
     "storePort": 47611,
     "portableStorage": true
   },
+  "_network": [
+    "OFF BY DEFAULT, and the only part of PenAI that can reach outside this",
+    "machine. With enabled=true a globe button appears next to the composer and",
+    "you can fetch one page at a time by typing its address. The launcher makes",
+    "the request with curl and hands the page text back as an attachment you",
+    "review before sending.",
+    "",
+    "What it still will not do: the model cannot fetch anything by itself, there",
+    "is no crawler and no search, and any address that resolves to this machine",
+    "or this network (127.x, 10.x, 192.168.x, 169.254.x, .local) is refused so a",
+    "drive plugged into an office network cannot be used to probe it.",
+    "",
+    "Treat a fetched page as untrusted text: it is written by someone else and",
+    "the model reads it. timeoutSecs is clamped to 5-120, maxKilobytes to",
+    "16-32768."
+  ],
+  "network": {
+    "enabled": false,
+    "timeoutSecs": 20,
+    "maxKilobytes": 2048
+  },
   "logging": {
     "maxFileBytes": 2097152,
     "keepFiles": 3

@@ -29,6 +29,12 @@ pub struct Config {
     pub store_port: u16,
     pub portable_storage: bool,
 
+    // --- network: the one part of PenAI that can reach outside the machine,
+    //     and it stays off until someone deliberately turns it on ---
+    pub network_enabled: bool,
+    pub network_timeout_secs: u64,
+    pub network_max_bytes: usize,
+
     // --- logging ---
     pub log_max_bytes: u64,
     pub log_keep: u32,
@@ -59,6 +65,10 @@ impl Default for Config {
             instance_port: 47610,
             store_port: 47611,
             portable_storage: true,
+
+            network_enabled: false,
+            network_timeout_secs: 20,
+            network_max_bytes: 2 * 1024 * 1024,
 
             log_max_bytes: 2 * 1024 * 1024,
             log_keep: 3,
@@ -185,6 +195,18 @@ impl Config {
         let mut sp = c.store_port as u32;
         take_u32(l, "storePort", &mut sp, &mut w);
         c.store_port = clamp_port(sp, c.store_port, "launcher.storePort", &mut w);
+
+        // -- network --
+        let n = root.get("network");
+        if let Some(v) = n.and_then(|x| x.get("enabled")).and_then(Json::as_bool) {
+            c.network_enabled = v;
+        }
+        let mut nt = c.network_timeout_secs as u32;
+        take_u32(n, "timeoutSecs", &mut nt, &mut w);
+        c.network_timeout_secs = (nt as u64).clamp(5, 120);
+        let mut nb = (c.network_max_bytes / 1024) as u32;
+        take_u32(n, "maxKilobytes", &mut nb, &mut w);
+        c.network_max_bytes = (nb as usize).clamp(16, 32 * 1024) * 1024;
 
         // -- logging --
         let lg = root.get("logging");

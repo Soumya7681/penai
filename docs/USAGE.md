@@ -109,6 +109,44 @@ was 3.4 MB/s, and while reads are faster they are still far below SSD.
 3 generations kept. If the drive is read-only, logging degrades to console output
 instead of failing.
 
+## Fetching a web page
+
+PenAI is offline by default and the drive ships that way. If you want it to be
+able to read a page you name, turn the switch on:
+
+```json
+"network": {
+  "enabled": true,
+  "timeoutSecs": 20,
+  "maxKilobytes": 2048
+}
+```
+
+That block goes in `config/config.json` on the drive. Restart the launcher
+afterwards; the setting is read once at startup.
+
+With it on, a globe button appears to the left of the send button. Click it,
+type an address (`example.com/page` is enough, `https://` is added for you) and
+press Fetch. The launcher retrieves the page, strips it to text, and adds it to
+the composer as an attachment chip labelled with the site. Expand it to read what
+was captured, remove it if it is not what you wanted, then type your question and
+send. The page text and your question go to the model together.
+
+It fetches one page, the one you asked for. It does not follow links, there is no
+search, and the model cannot start a fetch on its own.
+
+The `LINK` cell in the readout strip turns amber and reads `web access on`
+whenever the switch is on, so the state is always visible.
+
+Two things to know before you rely on it:
+
+- It uses `curl`, which ships with Windows 10 1803+ and every mainstream Linux
+  distribution. If it is missing, PenAI says so plainly instead of failing
+  vaguely.
+- A fetched page is text written by someone else, and the model reads it.
+  [Privacy and security](PRIVACY.md#web-access-when-you-turn-it-on) covers what
+  that means and what the launcher refuses to fetch.
+
 ## Browser URL behaviour
 
 The UI lives at:

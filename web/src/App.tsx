@@ -9,13 +9,14 @@ import { Icon } from './components/Icon'
 import {
   buildWireMessages,
   checkHealth,
+  fetchPage,
   fetchProps,
   loadRuntimeConfig,
   streamChat,
 } from './lib/api'
 import {
   deleteChatLocal,
-  detectPortable,
+  detectStore,
   exportToFile,
   importFromFile,
   loadSettingsRaw,
@@ -71,6 +72,8 @@ export default function App() {
   const [engineDetail, setEngineDetail] = useState<string | undefined>(undefined)
   const [ctxFromEngine, setCtxFromEngine] = useState<number | null>(null)
   const [portableBase, setPortableBase] = useState<string | null>(null)
+  // Web fetching is a launcher setting, so the page asks the launcher.
+  const [canFetch, setCanFetch] = useState(false)
   const [portableError, setPortableError] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   // Long pasted blocks wait here until the message is sent.
@@ -102,9 +105,11 @@ export default function App() {
       setSettings(raw ? { ...base, ...raw } : base)
 
       const local = await readLocal()
-      const base2 = await detectPortable(rc.storeBase)
+      const store = await detectStore(rc.storeBase)
+      const base2 = store?.base ?? null
       if (cancelled) return
       setPortableBase(base2)
+      setCanFetch(store?.fetch === true)
 
       let merged = local
       if (base2) {
@@ -463,6 +468,27 @@ export default function App() {
     [activeId, send],
   )
 
+  const addPage = useCallback(
+    async (url: string) => {
+      if (!portableBase) throw new Error('the launcher is not running, so nothing can be fetched')
+      const page = await fetchPage(portableBase, url)
+      if (!page.text.trim()) throw new Error('that page had no readable text in it')
+      const host = hostOf(page.url)
+      setPastes((p) => [
+        ...p,
+        {
+          id: newId('page'),
+          // The model is told where this came from, because it is not the
+          // user's own words and it should not be treated as an instruction.
+          text: `Web page fetched from ${page.url}${page.title ? `\nTitle: ${page.title}` : ''}\n\n${page.text}`,
+          source: host,
+          title: page.title || host,
+        },
+      ])
+    },
+    [portableBase],
+  )
+
   const clearAll = useCallback(() => {
     if (busy) return
     if (!window.confirm('Delete every chat on this drive and in this browser? This cannot be undone.')) {
@@ -528,6 +554,7 @@ export default function App() {
           if (isNarrow()) setSidebarOpen(false)
         }}
         onRename={renameChat}
+        canFetch={canFetch}
         onDelete={deleteChat}
         onOpenSettings={() => {
           setShowSettings(true)
@@ -556,6 +583,7 @@ export default function App() {
           threads={settings.threads || navigatorThreadHint()}
           portable={Boolean(portableBase && settings.portableStorage)}
           portableError={portableError}
+          canFetch={canFetch}
           onMenu={() => setSidebarOpen(true)}
         />
 
@@ -588,6 +616,7 @@ export default function App() {
             {!activeChat || messages.length === 0 ? (
               <Welcome
                 modelName={cfg.modelName}
+                canFetch={canFetch}
                 onPick={(q) => {
                   setDraft(q)
                 }}
@@ -628,6 +657,8 @@ export default function App() {
           onAddPaste={(text) =>
             setPastes((p) => [...p, { id: newId('paste'), text }])
           }
+          canFetch={canFetch}
+          onFetch={addPage}
           onRemovePaste={(id) => setPastes((p) => p.filter((x) => x.id !== id))}
           onSend={() => void send(composeMessage(pastes, draft))}
           onStop={stop}
@@ -653,9 +684,11 @@ export default function App() {
 
 function Welcome({
   modelName,
+  canFetch,
   onPick,
 }: {
   modelName: string
+  canFetch: boolean
   onPick(q: string): void
 }) {
   // Labelled by the kind of task, not numbered: these are four alternatives, so
@@ -673,10 +706,17 @@ function Welcome({
         <span className="kicker">PenAI</span>
       </div>
 
-      <h1>Ask anything. Nothing leaves this computer.</h1>
+      <h1>
+        {canFetch
+          ? 'Ask anything. The model answers here.'
+          : 'Ask anything. Nothing leaves this computer.'}
+      </h1>
       <p className="welcome-sub">
         <b>{modelName.replace(/\.gguf$/i, '')}</b> is loaded from the drive and answers on
-        this machine&apos;s own CPU. No account, no network, no telemetry.
+        this machine&apos;s own CPU. No account and no telemetry.{' '}
+        {canFetch
+          ? 'Web access is on, so a page you fetch by address is requested by the launcher. Nothing else leaves the machine.'
+          : 'No network either.'}
       </p>
 
       <div className="samples">
@@ -695,6 +735,15 @@ function Welcome({
  * The attachments come first and the typed question last, which is the order the
  * model reads best: material, then the instruction about it.
  */
+/** Just the host, for a chip label. Falls back to the raw string. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}
+
 function composeMessage(pastes: Paste[], draft: string): string {
   const parts = [...pastes.map((p) => p.text.trim()), draft.trim()]
   return parts.filter(Boolean).join('\n\n')

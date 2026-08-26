@@ -8,6 +8,8 @@ interface Props {
   activeId: string | null
   busy: boolean
   engine: EngineState
+  /** True when the launcher allows fetching a page. Changes what we claim. */
+  canFetch: boolean
   onNew(): void
   onSelect(id: string): void
   onRename(id: string, title: string): void
@@ -22,6 +24,7 @@ export function Sidebar({
   activeId,
   busy,
   engine,
+  canFetch,
   onNew,
   onSelect,
   onRename,
@@ -64,7 +67,9 @@ export function Sidebar({
           <BrandMark engine={engine} size={26} />
           <span>
             <span className="brand-name">PenAI</span>
-            <span className="kicker brand-sub">local · offline</span>
+            <span className="kicker brand-sub">
+              {canFetch ? 'local · web access on' : 'local · offline'}
+            </span>
           </span>
           <button
             type="button"
@@ -187,7 +192,11 @@ export function Sidebar({
           <Icon name="sliders" />
           Settings
         </button>
-        <p className="foot-note">Everything runs on this computer.</p>
+        <p className="foot-note">
+          {canFetch
+            ? 'The model runs here. Pages you fetch are requested by the launcher.'
+            : 'Everything runs on this computer.'}
+        </p>
       </div>
     </aside>
   )

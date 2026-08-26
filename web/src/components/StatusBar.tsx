@@ -10,6 +10,8 @@ interface Props {
   threads: number
   portable: boolean
   portableError: string | null
+  /** True when the launcher's config allows fetching a web page. */
+  canFetch: boolean
   onMenu(): void
 }
 
@@ -43,6 +45,7 @@ export function StatusBar({
   threads,
   portable,
   portableError,
+  canFetch,
   onMenu,
 }: Props) {
   const history = portableError ? 'write failed' : portable ? 'drive' : 'browser'
@@ -62,8 +65,13 @@ export function StatusBar({
       <div className="readout" aria-label="Runtime status">
         <Cell
           k="link"
-          v="offline"
-          title="This page can only reach 127.0.0.1. No request leaves the computer."
+          v={canFetch ? 'web access on' : 'offline'}
+          tone={canFetch ? 'readout-wait' : ''}
+          title={
+            canFetch
+              ? 'Web access is on in config.json. Pages you explicitly fetch are requested by the launcher; nothing else leaves this computer, and the model cannot fetch on its own.'
+              : 'This page can only reach 127.0.0.1. No request leaves the computer.'
+          }
           led
         />
 

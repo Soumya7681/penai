@@ -47,6 +47,9 @@ export interface Settings {
 export interface Paste {
   id: string
   text: string
+  /** Set when the block came from the web rather than the clipboard. */
+  source?: string
+  title?: string
 }
 
 export interface RuntimeConfig {

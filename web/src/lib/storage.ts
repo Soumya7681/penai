@@ -132,7 +132,16 @@ export interface PortableStore {
 /** Loopback ports the launcher may have used, if runtime-config.json is absent. */
 const PROBE_PORTS = [47611, 47612, 47613]
 
-export async function detectPortable(storeBase: string | null): Promise<string | null> {
+/** What the sidecar told us about itself when we found it. */
+export interface StoreCapabilities {
+  base: string
+  /** True when the launcher's config turns web fetching on. Off by default. */
+  fetch: boolean
+}
+
+export async function detectStore(
+  storeBase: string | null,
+): Promise<StoreCapabilities | null> {
   const candidates = storeBase
     ? [storeBase]
     : PROBE_PORTS.map((p) => `http://127.0.0.1:${p}`)
@@ -143,8 +152,8 @@ export async function detectPortable(storeBase: string | null): Promise<string |
       const r = await fetch(`${base}/api/health`, { signal: c.signal, cache: 'no-store' })
       clearTimeout(t)
       if (r.ok) {
-        const j = (await r.json()) as { kind?: string }
-        if (j.kind === 'pendriveai-store') return base
+        const j = (await r.json()) as { kind?: string; fetch?: boolean }
+        if (j.kind === 'pendriveai-store') return { base, fetch: j.fetch === true }
       }
     } catch {
       // Not there; try the next candidate.

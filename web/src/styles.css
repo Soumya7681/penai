@@ -1277,6 +1277,45 @@ a {
   gap: 8px;
 }
 
+/* The address bar for a web fetch. Present only when the launcher allows it. */
+.urlbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg-panel);
+  color: var(--text-faint);
+}
+
+.urlbar-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 3px 0;
+}
+
+.urlbar-input:focus {
+  outline: none;
+}
+
+.urlbar-error {
+  margin: 0;
+  padding: 2px 4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--danger);
+}
+
+.icon-btn-on {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 /* --------------------------------------------------------- pasted blocks */
 
 /*

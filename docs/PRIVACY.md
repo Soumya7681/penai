@@ -53,6 +53,49 @@ Sidecar hardening:
 - Writes are atomic: temp file plus rename.
 - Invalid JSON is rejected with 400, so the stored file cannot be corrupted.
 
+## Web access, when you turn it on
+
+Everything above describes the drive as it ships: nothing leaves the machine.
+There is one switch that changes that, and this section is what it does.
+
+Set `"network": { "enabled": true }` in `config/config.json` and restart. A globe
+button appears next to the composer, and you can fetch one page at a time by
+typing its address. The launcher makes the request with `curl` and hands the
+page's text back as an attachment you review before sending anything to the
+model.
+
+What stays true with it on:
+
+- **The model cannot browse.** There is no tool-calling loop and no crawler. A
+  fetch happens only when a person types an address and presses Fetch.
+- **The page still cannot reach the internet.** Its Content-Security-Policy is
+  unchanged, so the browser talks only to `127.0.0.1`. The launcher makes the
+  outbound request, not the page.
+- **Addresses on this machine or this network are refused**, before the request
+  and again after any redirect: `127.x`, `10.x`, `172.16-31.x`, `192.168.x`,
+  `169.254.x` (which includes the cloud metadata address), `100.64.0.0/10`, IPv6
+  loopback and unique-local, and names ending `.local`, `.internal`, `.localhost`
+  or `.home.arpa`. A drive plugged into an office network cannot be turned into a
+  port scanner.
+- **Only http and https**, on the request and on redirects. No `file://`, and no
+  credentials embedded in the address.
+- **Bounded**: a timeout you set (5-120 seconds) and a size cap you set (16 KB to
+  32 MB), defaulting to 20 seconds and 2 MB.
+- **Visible**: the readout strip's `LINK` cell changes from `offline` to
+  `web access on` and turns amber. The state is never hidden from you.
+
+What you are accepting with it on:
+
+- **The site learns you visited.** Your IP address, and a `PenAI/1.0` user agent.
+  There is no proxy and no anonymity layer.
+- **A fetched page is untrusted text written by someone else**, and the model
+  reads it. A page can contain instructions aimed at the model. The fetched block
+  is labelled with its source in the prompt, but treat any reply that draws on a
+  fetched page the way you would treat the page itself.
+- **The offline guarantee becomes conditional.** With the switch on, PenAI is a
+  program that makes outbound requests when asked. If you need the absolute
+  version of the promise, leave it off, which is how the drive ships.
+
 ## Security
 
 **Loopback only.** `llama-server` is bound to `127.0.0.1`, never `0.0.0.0`. This
