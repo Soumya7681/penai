@@ -28,7 +28,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 /// Hard cap on a stored payload. Generous for text chats, small enough that a
-/// runaway client cannot fill an 8 GB drive.
+/// runaway client cannot fill the drive.
 pub const MAX_BODY: usize = 32 * 1024 * 1024;
 const MAX_HEADERS: usize = 64;
 const MAX_HEADER_LINE: usize = 8 * 1024;

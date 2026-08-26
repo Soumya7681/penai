@@ -38,7 +38,7 @@ accept any single `.gguf` file in `models/` (the largest wins), or an explicit
 `model.file` entry in the config.
 
 **Why this model.** Apache-2.0 allows commercial use. 4B parameters is the sweet
-spot for CPU chat plus programming help. Q4_K_M fits an 8 GB drive with room to
+spot for CPU chat plus programming help. Q4_K_M needs 2.50 GB with room to
 spare and stays under the FAT32 4 GiB per-file limit. It is the non-thinking
 "Instruct" variant, so it answers directly instead of emitting long reasoning
 traces.
@@ -54,7 +54,7 @@ filesystem decides whether the model will even fit: FAT32 caps a single file at
 4 GiB, so Q4_K_M at 2.50 GB is fine but Q8_0 at 4.28 GB cannot be stored at all.
 exFAT removes that limit and also lets the launcher execute directly on Linux.
 Step-by-step instructions for Linux, Windows and macOS are in
-[[Format the pendrive first](PENDRIVE.md#format-the-pendrive-first-do-this-before-anything-else), Format the pendrive first](#format-the-pendrive-first-do-this-before-anything-else).
+[Format the pendrive first](PENDRIVE.md#format-the-pendrive-first-do-this-before-anything-else).
 
 ## Which models can I use?
 
@@ -86,10 +86,10 @@ matching `unsloth/Qwen3-<size>-GGUF` repo for the smaller models.
 
 | Model | Params | Quant | Approx size | Licence | Notes |
 |---|---|---|---|---|---|
-| **Qwen3-4B-Instruct-2507** | 4B | **Q4_K_M** | **2.50 GB** | Apache-2.0 | **The shipped default.** Best balance for 8 GB drives |
+| **Qwen3-4B-Instruct-2507** | 4B | **Q4_K_M** | **2.50 GB** | Apache-2.0 | **The shipped default.** Best balance of quality and size |
 | Qwen3-4B-Instruct-2507 | 4B | Q3_K_M | 2.08 GB | Apache-2.0 | For machines with about 4 GB RAM; some quality loss |
 | Qwen3-4B-Instruct-2507 | 4B | Q2_K | 1.67 GB | Apache-2.0 | Last resort for very low RAM; noticeably worse |
-| Qwen3-4B-Instruct-2507 | 4B | Q5_K_M | 2.89 GB | Apache-2.0 | Better quality if you have 8 GB+ RAM and drive space |
+| Qwen3-4B-Instruct-2507 | 4B | Q5_K_M | 2.89 GB | Apache-2.0 | Better quality if you have 8 GB+ RAM and the drive space |
 | Qwen3-4B-Instruct-2507 | 4B | Q6_K | 3.31 GB | Apache-2.0 | Higher quality, slower on CPU |
 | Qwen3-4B-Instruct-2507 | 4B | Q8_0 | 4.28 GB | Apache-2.0 | **EXCEEDS the FAT32 4 GiB single-file limit. exFAT only** |
 | Qwen3-1.7B | 1.7B | Q4_K_M | see repo | Apache-2.0 | Much faster on weak CPUs, clearly weaker at reasoning and code |

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Requirements - PenAI docs</title>
 <meta name="description" content="Requirements
-Platforms, hardware, and the storage budget for an 8 GB drive.">
+Platforms, hardware, and how much room a drive actually needs.">
 <link rel="icon" href="../assets/mark.svg">
 <link rel="stylesheet" href="../style.css">
 </head>
@@ -43,7 +43,7 @@ Platforms, hardware, and the storage budget for an 8 GB drive.">
 </nav>
 <article class="doc">
 <h1>Requirements</h1>
-<p>Platforms, hardware, and the storage budget for an 8 GB drive.</p>
+<p>Platforms, hardware, and how much room a drive actually needs.</p>
 <hr>
 <h2 id="supported-platforms">Supported platforms</h2>
 <div class="tablewrap"><table><thead><tr>
@@ -73,7 +73,7 @@ Platforms, hardware, and the storage budget for an 8 GB drive.">
 <p><strong>Not needed on the target computer:</strong> Node.js, Python, Docker, Ollama, an internet connection, admin rights, or any installation step.</p>
 <p><strong>Why 15 CPU variants matter.</strong> One drive has to work on an old office desktop and on a current laptop. The prebuilt llama.cpp release ships multiple builds selected at runtime by CPU feature detection, which is exactly the property that makes a single portable drive viable.</p>
 <p><strong>RAM arithmetic.</strong> The model has 36 layers, 8 KV heads (GQA) and head_dim 128, so the f16 KV cache costs <code>2 * 36 * 8 * 128 * 2 = 147,456</code> bytes per token, which is 144 KiB per token. At a context of 4096 that is roughly 0.6 GiB of KV cache on top of the 2.50 GB of weights, plus about 400 MiB of buffers. The launcher does this estimate before starting anything and reacts to the result (see <a href="USAGE.html#starting-penai">Starting PenAI</a>).</p>
-<h2 id="8-gb-storage-requirements">8 GB storage requirements</h2>
+<h2 id="storage-requirements">Storage requirements</h2>
 <div class="tablewrap"><table><thead><tr>
 <th>Item</th>
 <th>Size</th>
@@ -86,7 +86,8 @@ Platforms, hardware, and the storage budget for an 8 GB drive.">
 <tr><td>Config, docs and logs</td><td>well under 5 MB</td></tr>
 <tr><td><strong>Total</strong></td><td><strong>about 2.6 GB</strong></td></tr>
 </tbody></table></div>
-<p>An 8 GB pendrive gives roughly 7.3 GB usable, which leaves about 4.7 GB free for chat data and future updates.</p>
+<p>Any drive with that much free space works. Sizes are what they are on the shelf, so for reference: a 4 GB drive gives roughly 3.7 GB usable, which fits the default build with little to spare; an 8 GB drive gives roughly 7.3 GB, leaving about 4.7 GB for chat data, a second model and future updates.</p>
+<p>The drive's *size* is not the constraint people usually hit. The two that bite are the filesystem (FAT32 refuses to execute the launcher on Linux, and caps any single file at 4 GiB) and the model you choose.</p>
 <p>For reference: the downloaded llama.cpp archives are 16.7 MB (Linux <code>llama-b10549-bin-ubuntu-x64.tar.gz</code>) and 18.6 MB (Windows <code>llama-b10549-bin-win-cpu-x64.zip</code>). Extracted they are 41 MB and 46 MB. After trimming to only the files <code>llama-server</code> actually needs, each platform folder is roughly 40 to 45 MB.</p>
 <p class="doc-foot">Part of the PenAI documentation. Everything here also
 reads as plain markdown in the repository under <code>docs/</code>.</p>

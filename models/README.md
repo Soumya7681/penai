@@ -35,7 +35,7 @@ The licence was verified on the upstream `Qwen/Qwen3-4B-Instruct-2507` repositor
 - **4B parameters** is the sweet spot for CPU inference: large enough for useful
   chat and programming help, small enough to answer at a usable speed without a
   GPU.
-- **Q4_K_M** fits an 8 GB drive with room to spare, and stays under the FAT32
+- **Q4_K_M** needs 2.50 GB, leaving room on any modern drive, and stays under the FAT32
   4 GiB per-file limit.
 - It is the **non-thinking "Instruct" variant**, so it answers directly instead
   of emitting long reasoning traces before the answer.
@@ -280,10 +280,10 @@ matching `unsloth/Qwen3-<size>-GGUF` repository for the smaller models.
 
 | Model | Params | Quant | Approx size | Licence | Notes |
 |---|---|---|---|---|---|
-| **Qwen3-4B-Instruct-2507** | 4B | **Q4_K_M** | **2.50 GB** | Apache-2.0 | **The shipped default.** Best balance for 8 GB drives, and the only tested configuration |
+| **Qwen3-4B-Instruct-2507** | 4B | **Q4_K_M** | **2.50 GB** | Apache-2.0 | **The shipped default.** Best balance of quality and size, and the only tested configuration |
 | Qwen3-4B-Instruct-2507 | 4B | Q3_K_M | 2.08 GB | Apache-2.0 | For machines with about 4 GB RAM; some quality loss |
 | Qwen3-4B-Instruct-2507 | 4B | Q2_K | 1.67 GB | Apache-2.0 | Last resort for very low RAM; noticeably worse |
-| Qwen3-4B-Instruct-2507 | 4B | Q5_K_M | 2.89 GB | Apache-2.0 | Better quality if you have 8 GB+ RAM and drive space |
+| Qwen3-4B-Instruct-2507 | 4B | Q5_K_M | 2.89 GB | Apache-2.0 | Better quality if you have 8 GB+ RAM and the drive space |
 | Qwen3-4B-Instruct-2507 | 4B | Q6_K | 3.31 GB | Apache-2.0 | Higher quality, slower on CPU |
 | Qwen3-4B-Instruct-2507 | 4B | Q8_0 | 4.28 GB | Apache-2.0 | **EXCEEDS the FAT32 4 GiB single-file limit. exFAT only** |
 | Qwen3-1.7B | 1.7B | Q4_K_M | see repo | Apache-2.0 | Much faster on weak CPUs, clearly weaker at reasoning and code |

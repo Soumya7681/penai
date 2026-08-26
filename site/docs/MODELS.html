@@ -66,10 +66,10 @@ Choosing, downloading and verifying the GGUF model the drive carries.">
 # or
 powershell -File download-model.ps1   # Windows</code></pre>
 <p>The launcher expects the file at <code>models/model.gguf</code> by default. It will also accept any single <code>.gguf</code> file in <code>models/</code> (the largest wins), or an explicit <code>model.file</code> entry in the config.</p>
-<p><strong>Why this model.</strong> Apache-2.0 allows commercial use. 4B parameters is the sweet spot for CPU chat plus programming help. Q4_K_M fits an 8 GB drive with room to spare and stays under the FAT32 4 GiB per-file limit. It is the non-thinking "Instruct" variant, so it answers directly instead of emitting long reasoning traces.</p>
+<p><strong>Why this model.</strong> Apache-2.0 allows commercial use. 4B parameters is the sweet spot for CPU chat plus programming help. Q4_K_M needs 2.50 GB with room to spare and stays under the FAT32 4 GiB per-file limit. It is the non-thinking "Instruct" variant, so it answers directly instead of emitting long reasoning traces.</p>
 <p>Alternative quantisations, other usable models, manual download instructions and per-platform checksum verification are documented in <a href="README.html"><code>models/README.md</code></a>.</p>
 <p>The model is <strong>never committed to git</strong>. <code>.gitignore</code> excludes <code>*.gguf</code>.</p>
-<p><strong>Before you copy the model onto a pendrive, format the drive.</strong> The choice of filesystem decides whether the model will even fit: FAT32 caps a single file at 4 GiB, so Q4_K_M at 2.50 GB is fine but Q8_0 at 4.28 GB cannot be stored at all. exFAT removes that limit and also lets the launcher execute directly on Linux. Step-by-step instructions for Linux, Windows and macOS are in <a href="PENDRIVE.html#format-the-pendrive-first-do-this-before-anything-else">[Format the pendrive first</a>, Format the pendrive first](#format-the-pendrive-first-do-this-before-anything-else).</p>
+<p><strong>Before you copy the model onto a pendrive, format the drive.</strong> The choice of filesystem decides whether the model will even fit: FAT32 caps a single file at 4 GiB, so Q4_K_M at 2.50 GB is fine but Q8_0 at 4.28 GB cannot be stored at all. exFAT removes that limit and also lets the launcher execute directly on Linux. Step-by-step instructions for Linux, Windows and macOS are in <a href="PENDRIVE.html#format-the-pendrive-first-do-this-before-anything-else">Format the pendrive first</a>.</p>
 <h2 id="which-models-can-i-use">Which models can I use?</h2>
 <p>v1 ships exactly one model, and <strong>the launcher loads exactly one model at a time</strong>. There is no model picker in the UI. Swapping models means replacing <code>models/model.gguf</code> (or setting <code>model.file</code> in <code>config/config.json</code>) and restarting the launcher.</p>
 <p><strong>Hard requirements for any replacement:</strong></p>
@@ -91,10 +91,10 @@ powershell -File download-model.ps1   # Windows</code></pre>
 <th>Licence</th>
 <th>Notes</th>
 </tr></thead><tbody>
-<tr><td><strong>Qwen3-4B-Instruct-2507</strong></td><td>4B</td><td><strong>Q4_K_M</strong></td><td><strong>2.50 GB</strong></td><td>Apache-2.0</td><td><strong>The shipped default.</strong> Best balance for 8 GB drives</td></tr>
+<tr><td><strong>Qwen3-4B-Instruct-2507</strong></td><td>4B</td><td><strong>Q4_K_M</strong></td><td><strong>2.50 GB</strong></td><td>Apache-2.0</td><td><strong>The shipped default.</strong> Best balance of quality and size</td></tr>
 <tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q3_K_M</td><td>2.08 GB</td><td>Apache-2.0</td><td>For machines with about 4 GB RAM; some quality loss</td></tr>
 <tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q2_K</td><td>1.67 GB</td><td>Apache-2.0</td><td>Last resort for very low RAM; noticeably worse</td></tr>
-<tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q5_K_M</td><td>2.89 GB</td><td>Apache-2.0</td><td>Better quality if you have 8 GB+ RAM and drive space</td></tr>
+<tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q5_K_M</td><td>2.89 GB</td><td>Apache-2.0</td><td>Better quality if you have 8 GB+ RAM and the drive space</td></tr>
 <tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q6_K</td><td>3.31 GB</td><td>Apache-2.0</td><td>Higher quality, slower on CPU</td></tr>
 <tr><td>Qwen3-4B-Instruct-2507</td><td>4B</td><td>Q8_0</td><td>4.28 GB</td><td>Apache-2.0</td><td><strong>EXCEEDS the FAT32 4 GiB single-file limit. exFAT only</strong></td></tr>
 <tr><td>Qwen3-1.7B</td><td>1.7B</td><td>Q4_K_M</td><td>see repo</td><td>Apache-2.0</td><td>Much faster on weak CPUs, clearly weaker at reasoning and code</td></tr>

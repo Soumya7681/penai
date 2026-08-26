@@ -1,6 +1,6 @@
 # Requirements
 
-Platforms, hardware, and the storage budget for an 8 GB drive.
+Platforms, hardware, and how much room a drive actually needs.
 
 [← All documentation](README.md) · [Project home](../README.md)
 
@@ -59,7 +59,7 @@ cache on top of the 2.50 GB of weights, plus about 400 MiB of buffers. The
 launcher does this estimate before starting anything and reacts to the result
 (see [Starting PenAI](USAGE.md#starting-penai)).
 
-## 8 GB storage requirements
+## Storage requirements
 
 | Item | Size |
 |---|---|
@@ -71,8 +71,14 @@ launcher does this estimate before starting anything and reacts to the result
 | Config, docs and logs | well under 5 MB |
 | **Total** | **about 2.6 GB** |
 
-An 8 GB pendrive gives roughly 7.3 GB usable, which leaves about 4.7 GB free for
-chat data and future updates.
+Any drive with that much free space works. Sizes are what they are on the shelf,
+so for reference: a 4 GB drive gives roughly 3.7 GB usable, which fits the
+default build with little to spare; an 8 GB drive gives roughly 7.3 GB, leaving
+about 4.7 GB for chat data, a second model and future updates.
+
+The drive's *size* is not the constraint people usually hit. The two that bite
+are the filesystem (FAT32 refuses to execute the launcher on Linux, and caps any
+single file at 4 GiB) and the model you choose.
 
 For reference: the downloaded llama.cpp archives are 16.7 MB (Linux
 `llama-b10549-bin-ubuntu-x64.tar.gz`) and 18.6 MB (Windows

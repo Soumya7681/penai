@@ -5,7 +5,7 @@
   <img src="assets/logo.svg" alt="PenAI" width="330">
 </picture>
 
-**A full local-LLM chat system that lives on an 8 GB USB pendrive.**
+**A full local-LLM chat system that lives on a USB pendrive.**
 Plug it in, run one launcher, and a chat UI opens in your browser.
 No installation, no internet, no admin rights, no Node.js, no Python, no Docker, no cloud API.
 
@@ -26,8 +26,9 @@ No installation, no internet, no admin rights, no Node.js, no Python, no Docker,
 
 ## What it is
 
-An 8 GB pendrive carrying three things: a CPU build of **llama.cpp**, one **GGUF
+A pendrive carrying three things: a CPU build of **llama.cpp**, one **GGUF
 model**, and a small native **launcher** next to a **React** production build.
+Any drive with room for the model works; the default build needs about 2.6 GB.
 
 The launcher starts `llama-server` bound to `127.0.0.1`, points it at the model
 and at the web build, waits for the engine to report healthy, then opens your

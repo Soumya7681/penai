@@ -23,7 +23,7 @@ Every technical statement here refers to llama.cpp release `b10549` (published
 9. [Security model](#9-security-model)
 10. [Packaging strategy](#10-packaging-strategy)
     - [Preparing the drive: filesystem choice and formatting](#preparing-the-drive-filesystem-choice-and-formatting)
-11. [The 8 GB storage budget](#11-the-8-gb-storage-budget)
+11. [The storage budget](#11-the-storage-budget)
 
 ---
 
@@ -69,7 +69,7 @@ first of them. That is the whole system.
 +------------------|--------------------------------------------------------+
                    |
         +----------+-----------------------------------------+
-        |  USB pendrive (8 GB, FAT32 or exFAT)               |
+        |  USB pendrive (FAT32 or exFAT)                     |
         |  runtime/  models/  web/  config/  data/           |
         +----------------------------------------------------+
 ```
@@ -991,7 +991,7 @@ detection path.
 
 ---
 
-## 11. The 8 GB storage budget
+## 11. The storage budget
 
 | Item | Size |
 |---|---|
@@ -1003,7 +1003,8 @@ detection path.
 | Config, docs and logs | well under 5 MB |
 | **Total** | **about 2.6 GB** |
 
-An 8 GB pendrive gives roughly 7.3 GB usable, so about **4.7 GB stays free** for
+A drive needs about 2.6 GB free for the reference build. An 8 GB pendrive gives
+roughly 7.3 GB usable, so about **4.7 GB stays free** for
 chat data and future updates.
 
 Two constraints shaped the model choice as much as quality did:

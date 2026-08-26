@@ -8,7 +8,7 @@ Toolchains and the edit-run loop for changing the code.
 
 > **Just want a working drive?** You do not need this section. Run
 > `./scripts/build-all.sh --target /media/you/PENAI` and skip to
-> [[Starting PenAI](USAGE.md#starting-penai)](#starting-penai). This section is for changing the code.
+> [Starting PenAI](USAGE.md#starting-penai). This section is for changing the code.
 
 
 The development machine needs a Rust toolchain and Node.js. **Neither is needed

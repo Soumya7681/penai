@@ -61,7 +61,7 @@ This document explains how PenAI is put together and, more usefully, *why* each 
 <ul>
 <li><a href="#preparing-the-drive-filesystem-choice-and-formatting">Preparing the drive: filesystem choice and formatting</a></li>
 </ul>
-<li><a href="#11-the-8-gb-storage-budget">The 8 GB storage budget</a></li>
+<li><a href="#11-the-storage-budget">The storage budget</a></li>
 </ol>
 <hr>
 <h2 id="1-system-architecture">1. System architecture</h2>
@@ -102,7 +102,7 @@ This document explains how PenAI is put together and, more usefully, *why* each 
 +------------------|--------------------------------------------------------+
                    |
         +----------+-----------------------------------------+
-        |  USB pendrive (8 GB, FAT32 or exFAT)               |
+        |  USB pendrive (FAT32 or exFAT)                     |
         |  runtime/  models/  web/  config/  data/           |
         +----------------------------------------------------+</code></pre>
 <h3 id="component-choices">Component choices</h3>
@@ -590,7 +590,7 @@ Get-Partition -DiskNumber &lt;n&gt;</code></pre>
 └── README.md</code></pre>
 <p><code>.penai-root</code> is a zero-content marker whose only job is to make root discovery deterministic (section 3). Deleting it forces the slower structural detection path.</p>
 <hr>
-<h2 id="11-the-8-gb-storage-budget">11. The 8 GB storage budget</h2>
+<h2 id="11-the-storage-budget">11. The storage budget</h2>
 <div class="tablewrap"><table><thead><tr>
 <th>Item</th>
 <th>Size</th>
@@ -603,7 +603,7 @@ Get-Partition -DiskNumber &lt;n&gt;</code></pre>
 <tr><td>Config, docs and logs</td><td>well under 5 MB</td></tr>
 <tr><td><strong>Total</strong></td><td><strong>about 2.6 GB</strong></td></tr>
 </tbody></table></div>
-<p>An 8 GB pendrive gives roughly 7.3 GB usable, so about <strong>4.7 GB stays free</strong> for chat data and future updates.</p>
+<p>A drive needs about 2.6 GB free for the reference build. An 8 GB pendrive gives roughly 7.3 GB usable, so about <strong>4.7 GB stays free</strong> for chat data and future updates.</p>
 <p>Two constraints shaped the model choice as much as quality did:</p>
 <ul>
 <li><strong>The FAT32 4 GiB per-file limit.</strong> Q4_K_M at 2.50 GB clears it comfortably. Q8_0 at 4.28 GB does not, and would require exFAT.</li>

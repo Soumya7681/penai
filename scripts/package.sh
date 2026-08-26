@@ -45,8 +45,16 @@ MODEL_SHA256="3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"
 MODEL_FILENAME="Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
 MODEL_URL="https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/${MODEL_FILENAME}"
 
-# An "8 GB" USB stick formatted FAT32/exFAT gives about 7.3 GiB of usable space.
-DRIVE_USABLE_BYTES=7838315315
+# PenAI is not tied to one drive size: any stick with room for the model works.
+# The size below is only the yardstick this script measures a release against, so
+# that a build which no longer fits a common drive says so out loud. Change it
+# with --drive-size when you are targeting something else.
+#
+# A "GB" on a USB package is 10^9 bytes, and formatting costs a little, so a
+# nominal 8 GB stick lands near 7.84 GB (about 7.3 GiB) of usable space.
+DRIVE_GB=8
+USABLE_PER_GB=979789414
+DRIVE_USABLE_BYTES=$((DRIVE_GB * USABLE_PER_GB))
 
 say()  { printf '%s\n' "$*"; }
 step() { printf '\n==> %s\n' "$*"; }
@@ -63,6 +71,9 @@ Usage: scripts/package.sh [options]
   --model <path>                  Copy this .gguf in as models/model.gguf
   --version <str>                 Version string for .penai-root
                                   (default: the version in launcher/Cargo.toml)
+  --drive-size <GB>               Drive size to measure the release against.
+                                  Reporting only, it changes no output.
+                                  (default: ${DRIVE_GB})
   --force                         Overwrite a non-empty output directory
   -h, --help                      Show this help
 USAGE
@@ -105,6 +116,19 @@ while [ "$#" -gt 0 ]; do
     --model=*) MODEL="${1#*=}"; shift ;;
     --version) [ "$#" -ge 2 ] || die "--version needs a value"; VERSION="$2"; shift 2 ;;
     --version=*) VERSION="${1#*=}"; shift ;;
+    --drive-size)
+      [ "$#" -ge 2 ] || die "--drive-size needs a value in GB"
+      DRIVE_GB="$2"; shift 2
+      case "$DRIVE_GB" in ''|*[!0-9]*) die "--drive-size must be a whole number of GB" ;; esac
+      [ "$DRIVE_GB" -ge 1 ] || die "--drive-size must be at least 1"
+      DRIVE_USABLE_BYTES=$((DRIVE_GB * USABLE_PER_GB))
+      ;;
+    --drive-size=*)
+      DRIVE_GB="${1#*=}"; shift
+      case "$DRIVE_GB" in ''|*[!0-9]*) die "--drive-size must be a whole number of GB" ;; esac
+      [ "$DRIVE_GB" -ge 1 ] || die "--drive-size must be at least 1"
+      DRIVE_USABLE_BYTES=$((DRIVE_GB * USABLE_PER_GB))
+      ;;
     --force) FORCE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) usage >&2; die "unknown option: $1" ;;
@@ -405,11 +429,11 @@ size_report() {
   printf '  %-24s %s\n' "TOTAL" "$(human "$total")"
   say ""
   local free=$((DRIVE_USABLE_BYTES - total))
-  say "An 8 GB drive has about $(human "$DRIVE_USABLE_BYTES") usable."
+  say "A ${DRIVE_GB} GB drive has about $(human "$DRIVE_USABLE_BYTES") usable."
   if [ "$free" -ge 0 ]; then
     say "This release leaves $(human "$free") free on it."
   else
-    warn "this release is $(human $((-free))) LARGER than an 8 GB drive can hold."
+    warn "this release is $(human $((-free))) LARGER than a ${DRIVE_GB} GB drive can hold."
   fi
 
   if [ "$with_model" -eq 0 ]; then
@@ -421,9 +445,9 @@ size_report() {
     say "    models/download-model.ps1         (Windows)"
     say "    or re-run this script with --model <path-to.gguf>"
     if [ "$after" -ge 0 ]; then
-      say "  With the model added, $(human "$after") would remain free on an 8 GB drive."
+      say "  With the model added, $(human "$after") would remain free on a ${DRIVE_GB} GB drive."
     else
-      warn "with the model added this would exceed an 8 GB drive by $(human $((-after)))."
+      warn "with the model added this would exceed a ${DRIVE_GB} GB drive by $(human $((-after)))."
     fi
   fi
 }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PenAI - a local AI that runs from a USB drive</title>
-<meta name="description" content="A full local-LLM chat system on an 8 GB pendrive. Plug it in, run one launcher, chat in your browser. No installation, no internet, no admin rights.">
+<meta name="description" content="A full local-LLM chat system on a USB pendrive. Plug it in, run one launcher, chat in your browser. No installation, no internet, no admin rights.">
 <link rel="icon" href="assets/mark.svg">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -26,7 +26,7 @@
 <main>
 
 <div class="hero wrap">
-  <span class="kicker">Offline local LLM &middot; 8 GB pendrive</span>
+  <span class="kicker">Offline local LLM &middot; runs from a USB drive</span>
   <h1>Your own AI, in <em>your pocket</em>.</h1>
   <p>
     A complete chat system on a USB drive: the model, the engine, the interface and
@@ -152,7 +152,7 @@
       <tr><th>Model</th><td>Qwen3-4B-Instruct-2507-Q4_K_M by default, about 2.5 GB. Any GGUF that fits the drive works.</td></tr>
       <tr><th>Interface</th><td>React 18 and Vite, one JS file and one CSS file, no webfont, served by llama-server itself</td></tr>
       <tr><th>Launcher</th><td>Rust. Picks a free port, gates on available RAM, guards against a second instance, rotates logs, shuts the engine down cleanly.</td></tr>
-      <tr><th>Drive</th><td>8 GB, formatted exFAT. About 2.6 GB used, so there is room for a second model.</td></tr>
+      <tr><th>Drive</th><td>Any USB drive with about 2.6 GB free, formatted exFAT. On an 8 GB stick that leaves room for a second model.</td></tr>
       <tr><th>Host machine</th><td>Linux x86_64 or Windows x64. 8 GB RAM comfortably; the launcher reduces context rather than letting a smaller machine thrash.</td></tr>
       <tr><th>Measured speed</th><td>13.2 tokens/second generation, 50.3 tokens/second prompt processing, on the development laptop</td></tr>
       <tr><th>Licence</th><td>MIT for this project. The model is Apache-2.0 and is not included in the repository.</td></tr>
